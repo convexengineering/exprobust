@@ -53,16 +53,22 @@ class SimPleAC(Model):
         W_w = Var("W_w", "N", "wing weight")  # , fix=True)
         W_w_strc = Var('W_w_strc', 'N', 'wing structural weight')  # fix=True)
         W_w_surf = Var('W_w_surf', 'N', 'wing skin weight')  # fix=True)
-        V_f_wing = Var("V_f_wing", 'm^3', 'fuel volume in the wing', fix=True)
-        V_f_fuse = Var('V_f_fuse', 'm^3', 'fuel volume in fuselage', fix=True)
+        V_f_wing = Var("V_f_wing", 'm^3', 'fuel volume in the wing')#, fix=True)
+        V_f_fuse = Var('V_f_fuse', 'm^3', 'fuel volume in fuselage')#, fix=True)
+
+        # margins
+        m_ww = Var("m_ww", 1, "-", "wing weight margin", margin=True)
+        m_tsfc = Var("m_tsfc", 1, "-", "fuel efficiency margin", margin=True)
+        m_vmin = Var("m_vmin", 1, "-", "takeoff speed margin", margin=True)
+        m_range = Var("m_range", 1, "-", "range margin", margin=True)
         constraints = []
 
         # Weight and lift model
         constraints += [
             W >= W_0 + W_w + W_f,
             W_0 + W_w + 0.5 * W_f <= 0.5 * rho * S * C_L * V ** 2,
-            W <= 0.5 * rho * S * C_Lmax * V_min ** 2,
-            T_flight >= Range / V,
+            W <= 0.5 * rho * S * C_Lmax * (V_min/m_vmin) ** 2,
+            T_flight >= (Range*m_range) / V,
             LoD == C_L/C_D
             ]
 
@@ -71,7 +77,7 @@ class SimPleAC(Model):
         C_D_wpar = k * C_f * S_wetratio
         C_D_ind = C_L ** 2 / (np.pi * A * e)
         constraints += [
-            W_f >= TSFC * T_flight * D,
+            W_f >= (TSFC/m_tsfc) * T_flight * D,
             D >= 0.5 * rho * S * C_D * V ** 2,
             C_D >= C_D_fuse + C_D_wpar + C_D_ind,
             V_f_fuse <= 10*units('m')*CDA0,
@@ -95,14 +101,15 @@ class SimPleAC(Model):
             W_w_strc**2 >= (W_W_coeff1**2 / tau**2
                             * (N_ult**2 * A**3
                                * ((W_0+V_f_fuse*g*rho_f) * W * S))),
-            W_w >= W_w_surf + W_w_strc
+            W_w/m_ww >= W_w_surf + W_w_strc
             ]
+
+        self.cost = W_f
 
         return constraints
 
 
 if __name__ == "__main__":
     m = SimPleAC()
-    m.cost = m['W_f']
     sol = m.localsolve(verbosity=2)
     print(sol.table())
