@@ -7,7 +7,7 @@ def print_monte_carlo_results(m):
         sol = m.localsolve(verbosity=0)
         print("fuel consumption: %i lbs" % sol("W_f").to("lbf").magnitude)
     except Exception:
-        print "INFEASIBLE"
+        print("INFEASIBLE")
     else:
         N = 29
         failures = 0
@@ -23,4 +23,4 @@ def print_monte_carlo_results(m):
                 # print(m.solution.table(tables=["freevariables"]))
             except Exception:
                 failures += 1
-        print "    failure rate: % 2.1f%% " % (100*failures/float(N))
+        print("    failure rate: % 2.1f%% " % (100*failures/float(N)))
