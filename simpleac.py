@@ -67,7 +67,7 @@ class SimPleAC(Model):
         constraints += [
             W >= W_0 + W_w + W_f,
             W_0 + W_w + 0.5 * W_f <= 0.5 * rho * S * C_L * V ** 2,
-            W <= 0.5 * rho * S * C_Lmax * (V_min/m_vmin) ** 2,
+            W <= 0.5 * rho * S * C_Lmax * (V_min/m_vmin) ** 2,  # CHECK
             T_flight >= (Range*m_range) / V,
             LoD == C_L/C_D
             ]
@@ -77,7 +77,7 @@ class SimPleAC(Model):
         C_D_wpar = k * C_f * S_wetratio
         C_D_ind = C_L ** 2 / (np.pi * A * e)
         constraints += [
-            W_f >= (TSFC/m_tsfc) * T_flight * D,
+            W_f >= (TSFC/m_tsfc) * T_flight * D,    # CHECK
             D >= 0.5 * rho * S * C_D * V ** 2,
             C_D >= C_D_fuse + C_D_wpar + C_D_ind,
             V_f_fuse <= 10*units('m')*CDA0,
@@ -91,7 +91,7 @@ class SimPleAC(Model):
                 V_f == W_f / g / rho_f,
                 # linear with b and tau, quadratic with chord
                 V_f_wing**2 <= 0.0009*S**3/A*tau**2,
-                V_f_avail <= V_f_wing + V_f_fuse,  # [SP]
+                V_f_avail <= V_f_wing + V_f_fuse,  # [SP]    # CHECK
                 V_f_avail >= V_f
                 ]
 
