@@ -1,13 +1,12 @@
 import numpy as np
 
 
-def print_monte_carlo_results(m):
-    print("\n=========== NEW DESIGN")
+def monte_carlo_results(m):
     try:
         sol = m.localsolve(verbosity=0)
-        print("fuel consumption: %i lbs" % sol("W_f").to("lbf").magnitude)
+        #print("fuel consumption: %i lbs" % sol("W_f").to("lbf").magnitude)
     except Exception:
-        print("INFEASIBLE")
+        return (None,None)
     else:
         N = 29
         failures = 0
@@ -20,7 +19,7 @@ def print_monte_carlo_results(m):
             m.substitutions["W_W_coeff1"] = val
             try:
                 m.localsolve(verbosity=0, x0=sol["variables"])
-                # print(m.solution.table(tables=["freevariables"]))
             except Exception:
                 failures += 1
-        print("    failure rate: % 2.1f%% " % (100*failures/float(N)))
+        #print("    failure rate: % 2.1f%% " % (100*failures/float(N)))
+        return (sol("W_f").to("lbf").magnitude, 100*failures/float(N))
