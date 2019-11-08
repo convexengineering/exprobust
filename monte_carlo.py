@@ -5,7 +5,7 @@ def monte_carlo_results(m, progress, out):
     try:
         sol = m.localsolve(verbosity=0)
         with out:
-            print("fuel consumption: %i lbs" % sol("W_f").to("lbf").magnitude)
+            print("Fuel consumption: %i lbs" % sol("W_f").to("lbf").magnitude)
     except Exception:
         return (None,None)
     else:
@@ -26,7 +26,7 @@ def monte_carlo_results(m, progress, out):
                 failures += 1
             progress.value = (val-min_val)/(max_val-min_val)
         with out:
-            print("    failure rate: % 2.1f%% " % (100*failures/float(N)))
+            print("    Failure rate: % 2.1f%% " % (100*failures/float(N)))
         return (sol("W_f").to("lbf").magnitude, 100*failures/float(N))
 
     
