@@ -1,10 +1,14 @@
 import numpy as np
+import scipy.stats as stats
 from gpkit import ureg
 
+np.random.seed(seed=246)
 
-def monte_carlo_results(m, progress=None, out=None):
+
+def monte_carlo_results(m, progress=None, out=None, sol=None):
     try:
-        sol = m.localsolve(verbosity=0)
+        if sol is None:
+            sol = m.localsolve(verbosity=0)
         if out:
             with out:
                 print("Fuel consumption: %i lbs" % sol("W_f").to("lbf").magnitude)
@@ -23,8 +27,11 @@ def monte_carlo_results(m, progress=None, out=None):
             if var.margin:
                 m.substitutions[var] = 1
         m.pop()
-        for W_W_coeff1 in np.linspace(min_val, max_val, N):
-            m.substitutions["W_W_coeff1"] = W_W_coeff1
+        monte_up = [{k: stats.norm.rvs(loc=v, scale=(v*k.key.pr/300.))
+                     for k, v in list(m.substitutions.items()) if k.pr}
+                    for _ in range(N)]
+        for subs in monte_up:
+            m.substitutions.update(subs)
             try:
                 # assert not does_it_fail(sol, W_W_coeff1)
                 # UNCOMMENT THE ABOVE AND COMMENT OUT THE BELOW TO SPEED UP

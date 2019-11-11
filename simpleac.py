@@ -7,30 +7,30 @@ Var = Variable
 
 
 class SimPleAC(Model):
-    def setup(self):
+    def setup(self, wing_weight_pr=10, tsfc_pr=10, v_min_pr=20, range_pr=10):
         # Env. constants
         g = Var("g", 9.81, "m/s^2", "gravitational acceleration")
-        mu = Var("mu", 1.775e-5, "kg/m/s", "viscosity of air", pr=4.)
-        rho = Var("rho", 1.23, "kg/m^3", "density of air", pr=5.)
+        mu = Var("mu", 1.775e-5, "kg/m/s", "viscosity of air")
+        rho = Var("rho", 1.23, "kg/m^3", "density of air")
         rho_f = Var("rho_f", 817, "kg/m^3", "density of fuel")
 
         # Non-dimensional constants
-        C_Lmax = Var("C_Lmax", 1.6, "-", "max CL with flaps down", pr=5.)
-        e = Var("e", 0.92, "-", "Oswald efficiency factor", pr=3.)
-        k = Var("k", 1.17, "-", "form factor", pr=10.)
-        N_ult = Var("N_ult", 3.3, "-", "ultimate load factor", pr=15.)
-        S_wetratio = Var("S_wetratio", 2.075, "-", "wetted area ratio", pr=3.)
-        tau = Var("tau", 0.12, "-", "airfoil thickness to chord ratio", pr=10.)
+        C_Lmax = Var("C_Lmax", 1.6, "-", "max CL with flaps down")
+        e = Var("e", 0.92, "-", "Oswald efficiency factor")
+        k = Var("k", 1.17, "-", "form factor")
+        N_ult = Var("N_ult", 3.3, "-", "ultimate load factor")
+        S_wetratio = Var("S_wetratio", 2.075, "-", "wetted area ratio")
+        tau = Var("tau", 0.12, "-", "airfoil thickness to chord ratio")
         W_W_coeff1 = Var("W_W_coeff1", 2e-5, "1/m",
-                         "wing weight coefficent 1", pr=30.)  # orig 12e-5
+                         "wing weight coefficent 1")
         W_W_coeff2 = Var("W_W_coeff2", 60., "Pa",
-                         "wing weight coefficent 2", pr=10.)
+                         "wing weight coefficent 2")
 
         # Dimensional constants
         Range = Var("Range", 3000, "km", "aircraft range")
         TSFC = Var("TSFC", 0.6, "1/hr", "thrust specific fuel consumption")
-        V_min = Var("V_{min}", 25, "m/s", "takeoff speed", pr=20.)
-        W_0 = Var("W_0", 6250, "N", "aircraft weight excluding wing", pr=20.)
+        V_min = Var("V_{min}", 25, "m/s", "takeoff speed")
+        W_0 = Var("W_0", 6250, "N", "aircraft weight excluding wing")
 
         # Free Vs
         LoD = Var('L/D', '-', 'lift-to-drag ratio')
@@ -57,10 +57,10 @@ class SimPleAC(Model):
         V_f_fuse = Var('V_f_fuse', 'm^3', 'fuel volume in fuselage', fix=True)
 
         # margins
-        m_ww = Var("m_ww", 1, "-", "wing weight margin", margin=True)
-        m_tsfc = Var("m_tsfc", 1, "-", "fuel efficiency margin", margin=True)
-        m_vmin = Var("m_vmin", 1, "-", "takeoff speed margin", margin=True)
-        m_range = Var("m_range", 1, "-", "range margin", margin=True)
+        m_ww = Var("m_ww", 1, "-", "wing weight margin", margin=True, pr=wing_weight_pr)
+        m_tsfc = Var("m_tsfc", 1, "-", "fuel efficiency margin", margin=True, pr=tsfc_pr)
+        m_vmin = Var("m_vmin", 1, "-", "takeoff speed margin", margin=True, pr=v_min_pr)
+        m_range = Var("m_range", 1, "-", "range margin", margin=True, pr=range_pr)
         constraints = []
 
         # Weight and lift model
