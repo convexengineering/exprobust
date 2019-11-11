@@ -10,7 +10,7 @@ range_margin = 1.
 
 
 from simpleac import SimPleAC
-from monte_carlo import print_monte_carlo_results
+from monte_carlo import monte_carlo_results
 
 m = SimPleAC()
 m.substitutions.update({
@@ -20,6 +20,4 @@ m.substitutions.update({
   "m_range": range_margin
 })
 
-m.localsolve()
-
-print_monte_carlo_results(m)
+monte_carlo_results(m)

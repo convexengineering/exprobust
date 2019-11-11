@@ -40,11 +40,11 @@ class SimPleAC(Model):
         Re = Var("Re", "-", "Reynold's number")
         CDA0 = Var("(CDA0)", "m^2", "fuselage drag area")  # 0.035 originally
         C_D = Var("C_D", "-", "drag coefficient")
-        C_L = Var("C_L", "-", "lift coefficient of wing")
+        C_L = Var("C_L", "-", "lift coefficient of wing", fix=True)
         C_f = Var("C_f", "-", "skin friction coefficient")
         W_f = Var("W_f", "N", "fuel weight")
         V_f = Var("V_f", "m^3", "fuel volume")
-        V_f_avail = Var("V_{f_{avail}}", "m^3", "fuel volume available")
+        V_f_avail = Var("V_{f_{avail}}", "m^3", "fuel volume available", fix=True)
         T_flight = Var("T_{flight}", "hr", "flight time")
 
         # Free variables (fixed for performance eval.)
@@ -53,8 +53,8 @@ class SimPleAC(Model):
         W_w = Var("W_w", "N", "wing weight")  # , fix=True)
         W_w_strc = Var('W_w_strc', 'N', 'wing structural weight')  # fix=True)
         W_w_surf = Var('W_w_surf', 'N', 'wing skin weight')  # fix=True)
-        V_f_wing = Var("V_f_wing", 'm^3', 'fuel volume in the wing')#, fix=True)
-        V_f_fuse = Var('V_f_fuse', 'm^3', 'fuel volume in fuselage')#, fix=True)
+        V_f_wing = Var("V_f_wing", 'm^3', 'fuel volume in the wing', fix=True)
+        V_f_fuse = Var('V_f_fuse', 'm^3', 'fuel volume in fuselage', fix=True)
 
         # margins
         m_ww = Var("m_ww", 1, "-", "wing weight margin", margin=True)
@@ -85,16 +85,6 @@ class SimPleAC(Model):
             C_f >= 0.074 / Re ** 0.2
             ]
 
-        # Fuel volume model
-        with SignomialsEnabled():
-            constraints += [
-                V_f == W_f / g / rho_f,
-                # linear with b and tau, quadratic with chord
-                V_f_wing**2 <= 0.0009*S**3/A*tau**2,
-                V_f_avail <= V_f_wing + V_f_fuse,  # [SP]    # CHECK
-                V_f_avail >= V_f
-                ]
-
         # Wing weight model
         constraints += [
             W_w_surf >= W_W_coeff2 * S,
@@ -103,6 +93,16 @@ class SimPleAC(Model):
                                * ((W_0+V_f_fuse*g*rho_f) * W * S))),
             W_w/m_ww >= W_w_surf + W_w_strc
             ]
+
+        # Fuel volume model
+        with SignomialsEnabled():
+            constraints += [
+                V_f == W_f / g / rho_f,
+                # linear with b and tau, quadratic with chord
+                V_f_wing**2 <= 0.0009*S**3/A*tau**2,
+                V_f_avail >= V_f,
+                V_f_avail <= V_f_wing + V_f_fuse,  # [SP]    # CHECK
+                ]
 
         self.cost = W_f
 

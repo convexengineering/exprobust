@@ -10,7 +10,7 @@ flight_speed = 50  # meters per second
 
 
 from simpleac import SimPleAC
-from monte_carlo import print_monte_carlo_results
+from monte_carlo import monte_carlo_results
 
 m = SimPleAC()
 m.substitutions.update({
@@ -20,4 +20,4 @@ m.substitutions.update({
   "V": flight_speed
 })
 
-print_monte_carlo_results(m)
+monte_carlo_results(m)
