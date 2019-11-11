@@ -5,6 +5,7 @@ from gpkit import ureg
 monte_up = None
 
 def monte_carlo_results(m, progress=None, out=None, sol=None):
+    global monte_up
     try:
         if sol is None:
             sol = m.localsolve(verbosity=0)
