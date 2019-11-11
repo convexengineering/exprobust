@@ -17,7 +17,7 @@ def monte_carlo_results(m, progress=None, out=None, sol=None):
     except Exception:
         return (None, None)
     else:
-        N = 109
+        N = 111
         min_val = 1e-5
         max_val = 4e-5
         failures = 0
@@ -27,7 +27,7 @@ def monte_carlo_results(m, progress=None, out=None, sol=None):
             if var.margin:
                 m.substitutions[var] = 1
         m.pop()
-        monte_up = [{k: stats.norm.rvs(loc=v, scale=(v*k.key.pr/300.))
+        monte_up = [{k: stats.norm.rvs(loc=v, scale=(v*k.key.orig_pr/300.))
                      for k, v in list(m.substitutions.items()) if k.pr}
                     for _ in range(N)]
         for subs in monte_up:

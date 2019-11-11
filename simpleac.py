@@ -57,10 +57,14 @@ class SimPleAC(Model):
         V_f_fuse = Var('V_f_fuse', 'm^3', 'fuel volume in fuselage', fix=True)
 
         # margins
-        m_ww = Var("m_ww", 1, "-", "wing weight margin", margin=True, pr=wing_weight_pr)
-        m_tsfc = Var("m_tsfc", 1, "-", "fuel efficiency margin", margin=True, pr=tsfc_pr)
-        m_vmin = Var("m_vmin", 1, "-", "takeoff speed margin", margin=True, pr=v_min_pr)
-        m_range = Var("m_range", 1, "-", "range margin", margin=True, pr=range_pr)
+        m_ww = Var("m_ww", 1, "-", "wing weight margin", margin=True,
+                   pr=wing_weight_pr, orig_pr=10.)
+        m_tsfc = Var("m_tsfc", 1, "-", "fuel efficiency margin", margin=True,
+                     pr=tsfc_pr, orig_pr=10.)
+        m_vmin = Var("m_vmin", 1, "-", "takeoff speed margin", margin=True,
+                     pr=v_min_pr, orig_pr=20.)
+        m_range = Var("m_range", 1, "-", "range margin", margin=True,
+                      pr=range_pr, orig_pr=10.)
         constraints = []
 
         # Weight and lift model
