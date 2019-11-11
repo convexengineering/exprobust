@@ -18,8 +18,6 @@ def monte_carlo_results(m, progress=None, out=None, sol=None):
         return (None, None)
     else:
         N = 109
-        min_val = 1e-5
-        max_val = 4e-5
         failures = 0
         for var in m.varkeys:
             if var.fix:
@@ -30,7 +28,7 @@ def monte_carlo_results(m, progress=None, out=None, sol=None):
         monte_up = [{k: stats.norm.rvs(loc=v, scale=(v*k.key.pr/300.))
                      for k, v in list(m.substitutions.items()) if k.pr}
                     for _ in range(N)]
-        for subs in monte_up:
+        for i, subs in enumerate(monte_up):
             m.substitutions.update(subs)
             try:
                 # assert not does_it_fail(sol, W_W_coeff1)
@@ -39,7 +37,7 @@ def monte_carlo_results(m, progress=None, out=None, sol=None):
             except Exception:
                 failures += 1
                 if progress:
-                    progress.value = (val-min_val)/(max_val-min_val)
+                    progress.value = i/N
         if out:
             with out:
                 print("    Failure rate: % 2.1f%% " % (100*failures/float(N)))
