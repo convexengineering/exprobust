@@ -2,10 +2,10 @@ import numpy as np
 import scipy.stats as stats
 from gpkit import ureg
 
-monte_up = None
+# monte_up = None
 
 def monte_carlo_results(m, progress=None, out=None, sol=None):
-    global monte_up
+    # global monte_up
     try:
         if sol is None:
             sol = m.localsolve(verbosity=0)
@@ -25,11 +25,11 @@ def monte_carlo_results(m, progress=None, out=None, sol=None):
             if var.margin:
                 m.substitutions[var] = 1
         m.pop()
-        if monte_up is None:
-            np.random.seed(seed=246)
-            monte_up = [{k: stats.norm.rvs(loc=v, scale=(v*k.key.orig_pr/300.))
-                         for k, v in list(m.substitutions.items()) if k.pr}
-                        for _ in range(N)]
+        # if monte_up is None:
+        np.random.seed(seed=246)
+        monte_up = [{k: stats.norm.rvs(loc=v, scale=(v*k.key.orig_pr/300.))
+                     for k, v in list(m.substitutions.items()) if k.pr}
+                    for _ in range(N)]
         for i, subs in enumerate(monte_up):
             m.substitutions.update(subs)
             try:
@@ -38,8 +38,8 @@ def monte_carlo_results(m, progress=None, out=None, sol=None):
                 m.solve(verbosity=0)
             except Exception:
                 failures += 1
-                if progress:
-                    progress.value = i/N
+            if progress:
+                progress.value = i/N
         if out:
             with out:
                 print("    Failure rate: % 2.0f%% " % (100*failures/float(N)))
