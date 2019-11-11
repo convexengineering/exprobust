@@ -16,7 +16,7 @@ def monte_carlo_results(m, progress=None, out=None, sol=None):
     except Exception:
         return (None, None)
     else:
-        N = 111
+        N = 100
         min_val = 1e-5
         max_val = 4e-5
         failures = 0
@@ -43,9 +43,9 @@ def monte_carlo_results(m, progress=None, out=None, sol=None):
                     progress.value = (val-min_val)/(max_val-min_val)
         if out:
             with out:
-                print("    Failure rate: % 2.1f%% " % (100*failures/float(N)))
+                print("    Failure rate: % 2.0f%% " % (100*failures/float(N)))
         else:
-            print("    Failure rate: % 2.1f%% " % (100*failures/float(N)))
+            print("    Failure rate: % 2.0f%% " % (100*failures/float(N)))
         return (sol("W_f").to("lbf").magnitude, 100*failures/float(N))
 
 
