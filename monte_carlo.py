@@ -2,8 +2,7 @@ import numpy as np
 import scipy.stats as stats
 from gpkit import ureg
 
-np.random.seed(seed=246)
-
+monte_up = None
 
 def monte_carlo_results(m, progress=None, out=None, sol=None):
     try:
@@ -27,9 +26,11 @@ def monte_carlo_results(m, progress=None, out=None, sol=None):
             if var.margin:
                 m.substitutions[var] = 1
         m.pop()
-        monte_up = [{k: stats.norm.rvs(loc=v, scale=(v*k.key.orig_pr/300.))
-                     for k, v in list(m.substitutions.items()) if k.pr}
-                    for _ in range(N)]
+        if monte_up is None:
+            np.random.seed(seed=246)
+            monte_up = [{k: stats.norm.rvs(loc=v, scale=(v*k.key.orig_pr/300.))
+                         for k, v in list(m.substitutions.items()) if k.pr}
+                        for _ in range(N)]
         for subs in monte_up:
             m.substitutions.update(subs)
             try:
