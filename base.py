@@ -1,6 +1,7 @@
 from IPython.display import display
 import ipywidgets as widgets
 from simpleac import SimPleAC
+from tutorial import Tutorial
 from monte_carlo import monte_carlo_results
 import time
 import plotly.graph_objects as go
@@ -12,7 +13,7 @@ import csv
 subs - function that generates substitutions based on the lever widgets
 model_gen - function that generates model
 '''
-def setup(levers, subs, model_gen, exp = True):
+def setup(levers, subs, model_gen, exp=True):
     if exp:
         path = "data/%.0f/" % time.time()
         os.makedirs(path)
@@ -63,7 +64,7 @@ def setup(levers, subs, model_gen, exp = True):
         ),
         xaxis=go.layout.XAxis(
             title_text="Fuel Consumed (lbs)",
-            range=[800,2000]
+            range=[900,2000]
         )
     )
     fig.add_shape(
@@ -82,7 +83,7 @@ def setup(levers, subs, model_gen, exp = True):
     fig.add_shape(
         go.layout.Shape(
             type="rect",
-            x0=800,
+            x0=900,
             y0=30,
             x1=1100,
             y1=100,
@@ -95,7 +96,7 @@ def setup(levers, subs, model_gen, exp = True):
     fig.add_shape(
         go.layout.Shape(
             type="rect",
-            x0=800,
+            x0=900,
             y0=0,
             x1=1200,
             y1=30,
@@ -224,7 +225,7 @@ def setup(levers, subs, model_gen, exp = True):
                     diagram.data[0].x, diagram.data[0].y = draw_diagram(sol_wing_length, 
                                                                         sol_wing_area, 
                                                                         sol_fuel)
-                else:
+                elif model_gen == Tutorial:
                     sol = m.solve(verbosity = 0)
                     if exp:
                         #file = open(path + "%.0f" % time.time(), 'wb')
@@ -236,6 +237,21 @@ def setup(levers, subs, model_gen, exp = True):
                     diagram.data[0].x, diagram.data[0].y = draw_diagram(16*size, 
                                                                         23*size, 
                                                                         0.6*size)
+                else:
+                    sol = m.robustsolve(verbosity=0)
+                    m = SimPleAC()
+                    if exp:
+                        #file = open(path + "%.0f" % time.time(), 'wb')
+                        #pickle.dump(sol["variables"], file)
+                        #file.close()
+                        filename = path + "%.0f" % time.time()
+                        sol.save(filename)
+                    sol_wing_area = sol("S").magnitude
+                    sol_wing_length = ((sol("A").magnitude)*float(sol_wing_area))**.5
+                    sol_fuel = sol("V_f_fuse").magnitude
+                    diagram.data[0].x, diagram.data[0].y = draw_diagram(sol_wing_length, 
+                                                                        sol_wing_area, 
+                                                                        sol_fuel)
             except Exception as e:
                 with out:
                     print("Infeasible Conditions")
@@ -244,16 +260,17 @@ def setup(levers, subs, model_gen, exp = True):
                 iconds.append(cond)
                 return
 
-            if model_gen == SimPleAC:
-                progress.value = 0
-                progress.layout.visibility = None
-                performance, failure = monte_carlo_results(m, progress, out, sol = sol)
-            else:
+            
+            if model_gen == Tutorial:
                 performance = sol("C_o").magnitude
                 failure = sol("F_a").magnitude
                 with out:
                         print("Fuel consumption: %i lbs" % performance)
                         print("    Failure rate: % 2.1f%% " % failure)
+            else:
+                progress.value = 0
+                progress.layout.visibility = None
+                performance, failure = monte_carlo_results(m, progress, out, sol=sol)
 
             if performance:
                 x.append(performance)

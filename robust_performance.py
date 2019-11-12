@@ -17,13 +17,11 @@ from robust.robust import RobustModel
 m = SimPleAC(wing_weight_pr, tsfc_pr, v_min_pr, range_pr)
 nominal_sol = m.localsolve(verbosity=0)
 
-rm = RobustModel(m, "elliptical", gamma=gamma, twoTerm=False,
-                 boyd=False, simpleModel=False,
+
+rm = RobustModel(m, "box", gamma=gamma,
+                 twoTerm=False, boyd=False, simpleModel=True,
                  nominalsolve=nominal_sol)
 
-rm_sol = rm.robustsolve(verbosity=0,
-                        minNumOfLinearSections=3,
-                        maxNumOfLinearSections=99,
-                        linearizationTolerance=1e-4)
+rm_sol = rm.robustsolve(verbosity=0)
 
 monte_carlo_results(m, sol=rm_sol)
