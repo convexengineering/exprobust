@@ -144,7 +144,7 @@ def setup(levers, subs, model_gen, exp = True):
         wing_end = wing_start + wing_area/(wing_length/2)
         nose_length = plane_length*.96
 
-        fuselage_width = ((fuselage_volume+12)/plane_length)**.5
+        fuselage_width = ((fuselage_volume*25+5)/plane_length)**.5
         tail_width = fuselage_width + wing_length/8
         wing_width = wing_length/2
         #with out:
