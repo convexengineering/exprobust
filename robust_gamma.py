@@ -1,7 +1,7 @@
 
 # FILL OUT THESE #
 
-# gamma = 0.057
+performance = 4736  # IN NEWTONS
 wing_weight_pr = 10
 tsfc_pr = 10.
 v_min_pr = 20.
@@ -19,10 +19,9 @@ gamma = Variable('Gamma', '-', 'Uncertainty bound')
 m = SimPleAC(wing_weight_pr, tsfc_pr, v_min_pr, range_pr)
 nominal_sol = m.localsolve(verbosity=0)
 
-m.append(m["W_f"] <= 1800*m["W_f"].units)
+m.append(m["W_f"] <= performance*m["W_f"].units)
 m.append(gamma <= 1e30)
 m.cost = 1/gamma
-print m
 
 rm = RobustModel(m, "box", gamma=gamma,
                  twoTerm=False, boyd=False, simpleModel=True,
@@ -30,4 +29,5 @@ rm = RobustModel(m, "box", gamma=gamma,
 
 rm_sol = rm.robustsolve(verbosity=0)
 
-#monte_carlo_results(m, sol=rm_sol)
+m = SimPleAC(wing_weight_pr, tsfc_pr, v_min_pr, range_pr)
+monte_carlo_results(m, sol=rm_sol)
