@@ -1,11 +1,19 @@
 import numpy as np
 import scipy.stats as stats
-from gpkit import ureg
+from gpkit import ureg, NamedVariables
+from simpleac import SimPleAC
 
-# monte_up = None
+m = SimPleAC()
+N = 100
+np.random.seed(seed=246)
+monte_up = [{k.name: stats.truncnorm.rvs(-3, 3, loc=v,
+                                         scale=(v*k.key.orig_pr/300.))
+             for k, v in list(m.substitutions.items()) if k.pr}
+            for _ in range(N)]
+
 
 def monte_carlo_results(m, progress=None, out=None, sol=None):
-    # global monte_up
+    NamedVariables.reset_modelnumbers()
     try:
         if sol is None:
             sol = m.localsolve(verbosity=0)
@@ -17,19 +25,13 @@ def monte_carlo_results(m, progress=None, out=None, sol=None):
     except Exception:
         return (None, None)
     else:
-        N = 100
         failures = 0
         for var in m.varkeys:
             if var.fix:
-                m.substitutions[var] = sol["variables"][var]
+                m.substitutions[var] = sol["variables"][var.name]
             if var.margin:
                 m.substitutions[var] = 1
         m.pop()
-        # if monte_up is None:
-        np.random.seed(seed=246)
-        monte_up = [{k: stats.norm.rvs(loc=v, scale=(v*k.key.orig_pr/300.))
-                     for k, v in list(m.substitutions.items()) if k.pr}
-                    for _ in range(N)]
         for i, subs in enumerate(monte_up):
             m.substitutions.update(subs)
             try:
