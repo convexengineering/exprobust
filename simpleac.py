@@ -81,7 +81,7 @@ class SimPleAC(Model):
         C_D_wpar = k * C_f * S_wetratio
         C_D_ind = C_L ** 2 / (np.pi * A * e)
         constraints += [
-            W_f >= (TSFC/m_tsfc) * T_flight * D,    # CHECK
+            W_f >= (TSFC*m_tsfc) * T_flight * D,    # CHECK
             D >= 0.5 * rho * S * C_D * V ** 2,
             C_D >= C_D_fuse + C_D_wpar + C_D_ind,
             V_f_fuse <= 10*units('m')*CDA0,
