@@ -14,7 +14,7 @@ model_gen - function that generates model
 '''
 def setup(levers, subs, model_gen, exp = True):
     if exp:
-        path = "/%.0f/" % time.time()
+        path = "data/%.0f/" % time.time()
         os.makedirs(path)
 
     button = widgets.Button(description="Run Simulation")
