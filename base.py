@@ -119,7 +119,7 @@ def setup(levers, subs, model_gen, exp = True):
         yaxis=go.layout.YAxis(
             showgrid=False,
             showticklabels=False,
-            range=[-10,20]
+            range=[-5,25]
         ),
         xaxis=go.layout.XAxis(
             showgrid=False,
@@ -136,17 +136,19 @@ def setup(levers, subs, model_gen, exp = True):
                                  align_items='center')
     
     def draw_diagram(wing_length=16, wing_area=23, fuselage_volume=0.6):
-        plane_length = 13
+        plane_length = 20
         tail_length = plane_length*.1
         tail_taper = tail_length*.5
-        wing_start = plane_length*.55
-        wing_end = wing_start + wing_area/wing_length
-        wing_taper = wing_start + (wing_end-wing_start)*.6
-        nose_length = plane_length*.9
+        wing_taper = plane_length*.6
+        wing_start = wing_taper - .6*wing_area/(wing_length/2)
+        wing_end = wing_start + wing_area/(wing_length/2)
+        nose_length = plane_length*.96
 
-        fuselage_width = ((fuselage_volume+13)/plane_length)**.5
+        fuselage_width = ((fuselage_volume+12)/plane_length)**.5
         tail_width = fuselage_width + wing_length/8
         wing_width = wing_length/2
+        #with out:
+        #    print(wing_length, wing_area, fuselage_volume)
 
         x = [
             tail_width, #0
@@ -217,7 +219,7 @@ def setup(levers, subs, model_gen, exp = True):
                         filename = path + "%.0f" % time.time()
                         sol.save(filename)
                     sol_wing_area = sol("S").magnitude
-                    sol_wing_length = sol("A").magnitude
+                    sol_wing_length = ((sol("A").magnitude)*float(sol_wing_area))**.5
                     sol_fuel = sol("V_f_fuse").magnitude
                     diagram.data[0].x, diagram.data[0].y = draw_diagram(sol_wing_length, 
                                                                         sol_wing_area, 
