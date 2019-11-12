@@ -38,25 +38,38 @@ def setup(levers, subs, model_gen):
     out = widgets.Output(layout={'width': '90%',
                                  'height': '150px',
                                  'border': '1px solid black'})
-    ifeas = widgets.Output(layout={'width': '30%',
-                                   'height': '90%',
+    ifeas = widgets.Output(layout={'width': '20%',
+                                   'min_height': '500px',
                                    'border': '1px solid black'})
     with ifeas:
         print("Infeasible Conditions")
 
     fig = go.FigureWidget()
     fig.add_scatter();
+    # fig.add_shape(
+#         # filled Rectangle
+#         go.layout.Shape(
+#             type="rect",
+#             x0=800,
+#             y0=0,
+#             x1=1600,
+#             y1=10,
+#             fillcolor="rgba(0,255,0,0.5)",
+#         ))
     fig.update_layout(
         autosize=False,
         width=800,
         height=600,
         yaxis=go.layout.YAxis(
             title_text="Failure Rate",
-            range=[0,100]
+            range=[0,100],
+            tickmode = 'array',
+            tickvals = [0, 10, 20, 30, 40, 50, 60, 70, 80, 90, 100],
+            ticktext = ["0%", "10%", "20%", "30%", "40%", "50%", "60%", "70%", "80%", "90%", "100%"]
         ),
         xaxis=go.layout.XAxis(
             title_text="Fuel Consumed (lbs)",
-            range=[1000,2000]
+            range=[800,2000]
         )
     );
     fig.data[0].mode = 'lines+markers';
@@ -161,7 +174,7 @@ def setup(levers, subs, model_gen):
                     sol = m.localsolve(verbosity = 0)
                     sol_wing_area = sol("S").magnitude
                     sol_wing_length = sol("A").magnitude
-                    sol_fuel = sol("V_{f_{avail}}").magnitude
+                    sol_fuel = sol("V_f_fuse").magnitude
                     diagram.data[0].x, diagram.data[0].y = draw_diagram(sol_wing_length, 
                                                                         sol_wing_area, 
                                                                         sol_fuel)
@@ -189,7 +202,7 @@ def setup(levers, subs, model_gen):
                 with out:
                         print("Fuel consumption: %i lbs" % performance)
                         print("    Failure rate: % 2.1f%% " % failure)
-            
+
             if performance:
                 x.append(performance)
                 y.append(failure)
@@ -200,15 +213,16 @@ def setup(levers, subs, model_gen):
                 fig.data[0].hovertext = conds
                 import numpy as np
                 fig.data[0].marker=dict(
-                    size=[8]*(len(times) - 3) + [10, 14, 18][:len(times)],
+                    size=[7]*(len(times) - 2) + [12, 18][:len(times)],
                     showscale=False,
-                    color=["#aa44ff"]*(len(times)-1) + ["#ff44aa"]
+                    color=["#aa44ff"]*(len(times) - 2) + ["#dd44cc", "#ff44aa"][:len(times)],
                 )
                 fig.data[0].line={
-                    "color":'rgba(170, 68, 255, 0.3)'
+                    "color":'rgba(170, 68, 255, 0.2)'
                 }
         progress.layout.visibility = 'hidden'
-
     button.on_click(on_button_clicked)
+    
     controls = widgets.VBox(levers_text + [button, fig, progress, out])
+    
     return widgets.HBox([controls, diagram, ifeas], layout=item_layout)
