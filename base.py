@@ -119,12 +119,12 @@ def setup(levers, subs, model_gen, exp = True):
         yaxis=go.layout.YAxis(
             showgrid=False,
             showticklabels=False,
-            range=[-12,8]
+            range=[-10,20]
         ),
         xaxis=go.layout.XAxis(
             showgrid=False,
             showticklabels=False,
-            range=[-10,10]
+            range=[-15,15]
         )
     );
     diagram.data[0].mode = 'lines';
@@ -135,42 +135,45 @@ def setup(levers, subs, model_gen, exp = True):
                                  align_content='space-evenly',
                                  align_items='center')
     
-    def draw_diagram(wing_length=16, wing_area=23, fuel_volume_available=0.6):
-        tail_width = 2
-        alpha_fuel = 1.3
-        alpha_wing = .5
+    def draw_diagram(wing_length=16, wing_area=23, fuselage_volume=0.6):
+        plane_length = 13
+        tail_length = plane_length*.1
+        tail_taper = tail_length*.5
+        wing_start = plane_length*.55
+        wing_end = wing_start + wing_area/wing_length
+        wing_taper = wing_start + (wing_end-wing_start)*.6
+        nose_length = plane_length*.9
+
+        fuselage_width = ((fuselage_volume+13)/plane_length)**.5
+        tail_width = fuselage_width + wing_length/8
+        wing_width = wing_length/2
+
         x = [
-            (alpha_fuel*fuel_volume_available+tail_width), #0
-            (alpha_fuel*fuel_volume_available+tail_width), #1
-            (alpha_fuel*fuel_volume_available), #2
-            (alpha_fuel*fuel_volume_available), #3
-            (alpha_wing*wing_length), #4
-            (alpha_wing*wing_length), #5
-            (alpha_fuel*fuel_volume_available), #6
-            (alpha_fuel*fuel_volume_available), #7
+            tail_width, #0
+            tail_width, #1
+            fuselage_width, #2
+            fuselage_width, #3
+            wing_width, #4
+            wing_width, #5
+            fuselage_width, #6
+            fuselage_width, #7
             0, #8
         ]
 
-        x = x + [-1*i for i in x[7::-1]] + [(alpha_fuel*fuel_volume_available+tail_width)]
-        wing_place = .7
-        wing_taper = .6
-        alpha_length = 1
-        alpha_area = 2
-        tail_length = 1
-        tail_taper = .5
-        nose_length = .2
+        x = x + [-1*i for i in x[7::-1]] + [tail_width]
+        
         y = [
-            -(wing_place*alpha_length*wing_length), #0
-            -(wing_place*alpha_length*wing_length-tail_length), #1
-            -(wing_place*alpha_length*wing_length-tail_length-tail_taper), #2
-            -((1-wing_taper)*alpha_area*wing_area/wing_length), #3
-            -((1-wing_taper)*alpha_area*wing_area/wing_length), #4
-            0, #5
-            (wing_taper*alpha_area*wing_area/wing_length), #6
-            ((1-wing_place)*alpha_length*wing_length-nose_length), #7
-            ((1-wing_place)*alpha_length*wing_length), #8
+            0, #0
+            tail_taper, #1
+            tail_length, #2
+            wing_start, #3
+            wing_start, #4
+            wing_taper, #5
+            wing_end, #6
+            nose_length, #7
+            plane_length, #8
         ]
-        y = y + y[7::-1] + [-(wing_place*alpha_length*wing_length)]
+        y = y + y[7::-1] + [0]
         return x, y
 
     diagram.data[0].x, diagram.data[0].y = draw_diagram()
