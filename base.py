@@ -157,8 +157,8 @@ def setup(levers, subs, model_gen):
                 print(cond)
 
             try:
-                sol = m.localsolve(verbosity = 0)
                 if model_gen == SimPleAC:
+                    sol = m.localsolve(verbosity = 0)
                     sol_wing_area = sol("S").magnitude
                     sol_wing_length = sol("A").magnitude
                     sol_fuel = sol("V_{f_{avail}}").magnitude
@@ -166,7 +166,8 @@ def setup(levers, subs, model_gen):
                                                                         sol_wing_area, 
                                                                         sol_fuel)
                 else:
-                    size = (sol("S_a").magnitude)/100
+                    sol = m.solve(verbosity = 0)
+                    size = (sol("S_a").magnitude)/2
                     diagram.data[0].x, diagram.data[0].y = draw_diagram(16*size, 
                                                                         23*size, 
                                                                         0.6*size)
@@ -185,7 +186,10 @@ def setup(levers, subs, model_gen):
             else:
                 performance = sol("C_o").magnitude
                 failure = sol("F_a").magnitude
-
+                with out:
+                        print("Fuel consumption: %i lbs" % performance)
+                        print("    Failure rate: % 2.1f%% " % failure)
+            
             if performance:
                 x.append(performance)
                 y.append(failure)
