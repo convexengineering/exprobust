@@ -4,12 +4,19 @@ from simpleac import SimPleAC
 from monte_carlo import monte_carlo_results
 import time
 import plotly.graph_objects as go
+import pickle
+import os
+import csv
 
 '''
 subs - function that generates substitutions based on the lever widgets
 model_gen - function that generates model
 '''
-def setup(levers, subs, model_gen):
+def setup(levers, subs, model_gen, exp = True):
+    if exp:
+        path = "/%.0f/" % time.time()
+        os.makedirs(path)
+
     button = widgets.Button(description="Run Simulation")
 
     levers_text = []
@@ -172,6 +179,12 @@ def setup(levers, subs, model_gen):
             try:
                 if model_gen == SimPleAC:
                     sol = m.localsolve(verbosity = 0)
+                    if exp:
+                        #file = open(path + "%.0f" % time.time(), 'wb')
+                        #pickle.dump(sol["variables"], file)
+                        #file.close()
+                        filename = path + "%.0f" % time.time()
+                        sol.save(filename)
                     sol_wing_area = sol("S").magnitude
                     sol_wing_length = sol("A").magnitude
                     sol_fuel = sol("V_f_fuse").magnitude
@@ -180,11 +193,17 @@ def setup(levers, subs, model_gen):
                                                                         sol_fuel)
                 else:
                     sol = m.solve(verbosity = 0)
+                    if exp:
+                        #file = open(path + "%.0f" % time.time(), 'wb')
+                        #pickle.dump(sol["variables"], file)
+                        #file.close()
+                        filename = path + "%.0f" % time.time()
+                        sol.save(filename)
                     size = (sol("S_a").magnitude)/2
                     diagram.data[0].x, diagram.data[0].y = draw_diagram(16*size, 
                                                                         23*size, 
                                                                         0.6*size)
-            except Exception:
+            except Exception as e:
                 with out:
                     print("Infeasible Conditions")
                 with ifeas:
@@ -195,7 +214,7 @@ def setup(levers, subs, model_gen):
             if model_gen == SimPleAC:
                 progress.value = 0
                 progress.layout.visibility = None
-                performance, failure = monte_carlo_results(m, progress, out)
+                performance, failure = monte_carlo_results(m, progress, out, sol = sol)
             else:
                 performance = sol("C_o").magnitude
                 failure = sol("F_a").magnitude
@@ -222,7 +241,7 @@ def setup(levers, subs, model_gen):
                 }
         progress.layout.visibility = 'hidden'
     button.on_click(on_button_clicked)
+
+    col1 = widgets.VBox(levers_text + [button, fig, progress, out])
     
-    controls = widgets.VBox(levers_text + [button, fig, progress, out])
-    
-    return widgets.HBox([controls, diagram, ifeas], layout=item_layout)
+    return widgets.HBox([col1, diagram, ifeas], layout=item_layout)
