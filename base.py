@@ -42,27 +42,14 @@ def setup(levers, subs, model_gen, exp = True):
                                      orientation='horizontal')
     progress.layout.visibility = 'hidden'
 
-    out = widgets.Output(layout={'width': '90%',
-                                 'height': '150px',
-                                 'border': '1px solid black'})
-    ifeas = widgets.Output(layout={'width': '20%',
-                                   'min_height': '500px',
-                                   'border': '1px solid black'})
+    out = widgets.Output(layout={'height': '50px',
+                                 'border': 'none'})
+    ifeas = widgets.Output(layout={'height': '150px',
+                                   'border': 'none'})
     with ifeas:
-        print("Infeasible Conditions")
+        print("List of Infeasible Conditions:")
 
     fig = go.FigureWidget()
-    fig.add_scatter();
-    # fig.add_shape(
-#         # filled Rectangle
-#         go.layout.Shape(
-#             type="rect",
-#             x0=800,
-#             y0=0,
-#             x1=1600,
-#             y1=10,
-#             fillcolor="rgba(0,255,0,0.5)",
-#         ))
     fig.update_layout(
         autosize=False,
         width=800,
@@ -78,10 +65,51 @@ def setup(levers, subs, model_gen, exp = True):
             title_text="Fuel Consumed (lbs)",
             range=[800,2000]
         )
-    );
-    fig.data[0].mode = 'lines+markers';
+    )
+    fig.add_shape(
+        go.layout.Shape(
+            type="rect",
+            x0=1200,
+            y0=0,
+            x1=2000,
+            y1=10,
+            fillcolor="rgba(240,255,220,0.4)",
+            line=dict(
+                color="white",
+                width=1,
+            ),
+    ))
+    fig.add_shape(
+        go.layout.Shape(
+            type="rect",
+            x0=800,
+            y0=30,
+            x1=1100,
+            y1=100,
+            fillcolor="rgba(220,255,240,0.4)",
+            line=dict(
+                color="white",
+                width=1,
+            ),
+    ))
+    fig.add_shape(
+        go.layout.Shape(
+            type="rect",
+            x0=800,
+            y0=0,
+            x1=1200,
+            y1=30,
+            fillcolor="rgba(200,255,200,0.4)",
+            line=dict(
+                color="white",
+                width=1,
+            ),
+    ))
+    fig.update_shapes(dict(xref='x', yref='y'))
+    fig.add_trace(
+        go.Scatter(mode = 'lines+markers'))
     diagram = go.FigureWidget();
-    diagram.add_scatter();
+    diagram.add_scatter(line={"color": "black"});
     diagram.update_layout(
         paper_bgcolor='rgba(0,0,0,0)',
         plot_bgcolor='rgba(0,0,0,0)',
@@ -101,7 +129,7 @@ def setup(levers, subs, model_gen, exp = True):
     );
     diagram.data[0].mode = 'lines';
 
-    item_layout = widgets.Layout(margin='0 0 50px 0',
+    item_layout = widgets.Layout(margin='50px',
                                  justify_content='space-around',
                                  justify_items='center',
                                  align_content='space-evenly',
@@ -244,4 +272,7 @@ def setup(levers, subs, model_gen, exp = True):
 
     col1 = widgets.VBox(levers_text + [button, fig, progress, out])
     
-    return widgets.HBox([col1, diagram, ifeas], layout=item_layout)
+    left = widgets.VBox(levers_text + [widgets.HBox([button, progress]), out, fig])
+    right = widgets.VBox([ifeas, diagram])
+    
+    return widgets.HBox([left, right], layout=item_layout)
