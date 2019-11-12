@@ -17,7 +17,7 @@ from robust.robust import RobustModel
 m = SimPleAC(wing_weight_pr, tsfc_pr, v_min_pr, range_pr)
 nominal_sol = m.localsolve(verbosity=0)
 
-rm = RobustModel(m, "elliptical", gamma=gamma, twoTerm=True,
+rm = RobustModel(m, "elliptical", gamma=gamma, twoTerm=False,
                  boyd=False, simpleModel=False,
                  nominalsolve=nominal_sol)
 

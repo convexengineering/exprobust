@@ -1,7 +1,7 @@
 
 # FILL OUT THESE #
 
-wing_weight_margin = 1.125
+wing_weight_margin = 1.5
 tsfc_margin = 1.
 takeoff_speed_margin = 1.
 range_margin = 1.
