@@ -1,6 +1,6 @@
 from IPython.display import display
 import ipywidgets as widgets
-#from simpleac import SimPleAC
+from simpleac import SimPleAC
 #from tutorial import Tutorial
 from monte_carlo import monte_carlo_results
 import time
