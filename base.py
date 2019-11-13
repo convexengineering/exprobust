@@ -1,7 +1,7 @@
 from IPython.display import display
 import ipywidgets as widgets
-from simpleac import SimPleAC
-from tutorial import Tutorial
+#from simpleac import SimPleAC
+#from tutorial import Tutorial
 from monte_carlo import monte_carlo_results
 import time
 import plotly.graph_objects as go
@@ -9,13 +9,20 @@ import pickle
 import os
 import csv
 
+TUTORIAL = "tutorial"
+CONTROL = "control"
+MARGIN = "margin"
+ROBUST_PERFORMANCE = "robust_performance"
+ROBUST_GAMMA = "robust_gamma"
+
 '''
 subs - function that generates substitutions based on the lever widgets
 model_gen - function that generates model
 '''
-def setup(levers, subs, model_gen, exp=True):
+def setup(levers, subs, model_gen, condition, exp=True):
     if exp:
-        path = "data/%.0f/" % time.time()
+        subj = widgets.Text(description='Subject-ID')
+        path = "data/%s/%.0f/" % (condition, time.time())
         os.makedirs(path)
 
     button = widgets.Button(description="Run Simulation")
@@ -148,8 +155,6 @@ def setup(levers, subs, model_gen, exp=True):
         fuselage_width = ((fuselage_volume*25+5)/plane_length)**.5
         tail_width = fuselage_width + wing_length/8
         wing_width = wing_length/2
-        #with out:
-        #    print(wing_length, wing_area, fuselage_volume)
 
         x = [
             tail_width, #0
@@ -211,13 +216,10 @@ def setup(levers, subs, model_gen, exp=True):
                 print(cond)
 
             try:
-                if model_gen == SimPleAC:
+                if condition in [CONTROL, MARGIN]:
                     sol = m.localsolve(verbosity = 0)
                     if exp:
-                        #file = open(path + "%.0f" % time.time(), 'wb')
-                        #pickle.dump(sol["variables"], file)
-                        #file.close()
-                        filename = path + "%.0f" % time.time()
+                        filename = path + "%.0f" % (time.time()-start_time)
                         sol.save(filename)
                     sol_wing_area = sol("S").magnitude
                     sol_wing_length = ((sol("A").magnitude)*float(sol_wing_area))**.5
@@ -225,13 +227,10 @@ def setup(levers, subs, model_gen, exp=True):
                     diagram.data[0].x, diagram.data[0].y = draw_diagram(sol_wing_length, 
                                                                         sol_wing_area, 
                                                                         sol_fuel)
-                elif model_gen == Tutorial:
+                elif condition == TUTORIAL:
                     sol = m.solve(verbosity = 0)
                     if exp:
-                        #file = open(path + "%.0f" % time.time(), 'wb')
-                        #pickle.dump(sol["variables"], file)
-                        #file.close()
-                        filename = path + "%.0f" % time.time()
+                        filename = path + "%.0f" % (time.time()-start_time)
                         sol.save(filename)
                     size = (sol("S_a").magnitude)/2
                     diagram.data[0].x, diagram.data[0].y = draw_diagram(16*size, 
@@ -241,9 +240,6 @@ def setup(levers, subs, model_gen, exp=True):
                     sol = m.robustsolve(verbosity=0)
                     m = SimPleAC()
                     if exp:
-                        #file = open(path + "%.0f" % time.time(), 'wb')
-                        #pickle.dump(sol["variables"], file)
-                        #file.close()
                         filename = path + "%.0f" % time.time()
                         sol.save(filename)
                     sol_wing_area = sol("S").magnitude
@@ -261,7 +257,7 @@ def setup(levers, subs, model_gen, exp=True):
                 return
 
             
-            if model_gen == Tutorial:
+            if condition == TUTORIAL:
                 performance = sol("C_o").magnitude
                 failure = sol("F_a").magnitude
                 with out:
