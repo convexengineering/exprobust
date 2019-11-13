@@ -240,7 +240,7 @@ def setup(levers, subs, model_gen, condition, exp=True):
                     sol = m.robustsolve(verbosity=0)
                     m = SimPleAC()
                     if exp:
-                        filename = path + "%.0f" % time.time()
+                        filename = path + "%.0f" % (time.time()-start_time)
                         sol.save(filename)
                     sol_wing_area = sol("S").magnitude
                     sol_wing_length = ((sol("A").magnitude)*float(sol_wing_area))**.5
@@ -254,6 +254,10 @@ def setup(levers, subs, model_gen, condition, exp=True):
                 with ifeas:
                     print(cond)
                 iconds.append(cond)
+                filename = path + "%.0f" % (time.time()-start_time) + ".txt"
+                f = open(filename, "w+")
+                f.write()
+                f.close()
                 return
 
             
