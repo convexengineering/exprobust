@@ -44,9 +44,9 @@ def monte_carlo_results(m, progress=None, out=None, sol=None):
                 progress.value = i/N
         if out:
             with out:
-                print("    Failure rate: % 2.0f%% " % (100*failures/float(N)))
+                print("    Failure rate: % 2.1f%% " % (100*failures/float(N)))
         else:
-            print("    Failure rate: % 2.0f%% " % (100*failures/float(N)))
+            print("    Failure rate: % 2.1f%% " % (100*failures/float(N)))
         return (sol("W_f").to("lbf").magnitude, 100*failures/float(N))
 
 

@@ -1,7 +1,6 @@
 from IPython.display import display
 import ipywidgets as widgets
 from simpleac import SimPleAC
-#from tutorial import Tutorial
 from monte_carlo import monte_carlo_results
 import time
 import plotly.graph_objects as go
@@ -20,10 +19,9 @@ subs - function that generates substitutions based on the lever widgets
 model_gen - function that generates model
 '''
 def setup(levers, subs, model_gen, condition, exp=True):
-    if exp:
-        subj = widgets.Text(description='Subject-ID')
-        path = "data/%s/%.0f/" % (condition, time.time())
-        os.makedirs(path)
+    start_time = time.time()
+    global path
+    path = "data/%s/%.0f/" % (condition, start_time)
 
     button = widgets.Button(description="Run Simulation")
 
@@ -191,7 +189,6 @@ def setup(levers, subs, model_gen, condition, exp=True):
     conds = []
     iconds = []
     times = []
-    start_time = time.time()#dt.now()
 
     def on_button_clicked(b):
         m = model_gen()
@@ -228,6 +225,8 @@ def setup(levers, subs, model_gen, condition, exp=True):
                     sol = m.localsolve(verbosity = 0)
                     if exp:
                         filename = path + "%.0f" % (time.time()-start_time)
+                        if not os.path.isdir(path):
+                            os.makedirs(path)
                         sol.save(filename)
                     sol_wing_area = sol("S").magnitude
                     sol_wing_length = ((sol("A").magnitude)*float(sol_wing_area))**.5
@@ -239,6 +238,8 @@ def setup(levers, subs, model_gen, condition, exp=True):
                     sol = m.solve(verbosity = 0)
                     if exp:
                         filename = path + "%.0f" % (time.time()-start_time)
+                        if not os.path.isdir(path):
+                            os.makedirs(path)
                         sol.save(filename)
                     size = (sol("S_a").magnitude)/2
                     diagram.data[0].x, diagram.data[0].y = draw_diagram(16*size, 
@@ -249,6 +250,8 @@ def setup(levers, subs, model_gen, condition, exp=True):
                     m = SimPleAC()
                     if exp:
                         filename = path + "%.0f" % (time.time()-start_time)
+                        if not os.path.isdir(path):
+                            os.makedirs(path)
                         sol.save(filename)
                     sol_wing_area = sol("S").magnitude
                     sol_wing_length = ((sol("A").magnitude)*float(sol_wing_area))**.5
@@ -306,4 +309,17 @@ def setup(levers, subs, model_gen, condition, exp=True):
     left = widgets.VBox(levers_text + [widgets.HBox([button, progress]), out, fig])
     right = widgets.VBox([ifeas, diagram])
     
+    if exp:
+        subj_name = widgets.Text(description='Subject-ID')
+        subj_enter = widgets.Button(description="Submit Subject ID")
+        subj = widgets.HBox([subj_name,subj_enter])
+        def subj_dir(b):
+            global path
+            path = "data/%s/%.0f (ID %s)/" % (condition, start_time, subj_name.value)
+            os.makedirs(path)
+            subj_name.layout.visibility = 'hidden'
+            subj_enter.layout.visibility = 'hidden'
+        subj_enter.on_click(subj_dir)
+        right = widgets.VBox([ifeas, diagram, subj])
+
     return widgets.HBox([left, right], layout=item_layout)
