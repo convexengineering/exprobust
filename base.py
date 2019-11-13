@@ -202,14 +202,22 @@ def setup(levers, subs, model_gen, condition, exp=True):
         if cond in iconds:
             with out:
                 print(cond + " already tested")
-                print("Infeasible conditions")
-        
+                print("Infeasible Conditions")
+                filename = path + "%.0f_repeat" % (time.time()-start_time) + ".txt"
+                f = open(filename, "w+")
+                f.write(str(cond))
+                f.close()
+
         elif cond in conds:
             with out:
                 print(cond + " already tested")
                 i = conds.index(cond)
                 print("Fuel consumption: %i lbs" % x[i])
                 print("    Failure rate: % 2.1f%% " % y[i])
+                filename = path + "%.0f_repeat" % (time.time()-start_time) + ".txt"
+                f = open(filename, "w+")
+                f.write(str(cond))
+                f.close()
         
         else:
             with out:
@@ -254,9 +262,10 @@ def setup(levers, subs, model_gen, condition, exp=True):
                 with ifeas:
                     print(cond)
                 iconds.append(cond)
-                filename = path + "%.0f" % (time.time()-start_time) + ".txt"
+                filename = path + "%.0f_infeas" % (time.time()-start_time) + ".txt"
                 f = open(filename, "w+")
-                f.write()
+                f.write(str(cond) +"\n")
+                f.write(str(e))
                 f.close()
                 return
 
@@ -265,8 +274,8 @@ def setup(levers, subs, model_gen, condition, exp=True):
                 performance = sol("C_o").magnitude
                 failure = sol("F_a").magnitude
                 with out:
-                        print("Fuel consumption: %i lbs" % performance)
-                        print("    Failure rate: % 2.1f%% " % failure)
+                    print("Fuel consumption: %i lbs" % performance)
+                    print("    Failure rate: % 2.1f%% " % failure)
             else:
                 progress.value = 0
                 progress.layout.visibility = None
