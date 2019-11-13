@@ -1,6 +1,6 @@
 from IPython.display import display
 import ipywidgets as widgets
-#from simpleac import SimPleAC
+from simpleac import SimPleAC
 #from tutorial import Tutorial
 from monte_carlo import monte_carlo_results
 import time
@@ -240,7 +240,7 @@ def setup(levers, subs, model_gen, condition, exp=True):
                     sol = m.robustsolve(verbosity=0)
                     m = SimPleAC()
                     if exp:
-                        filename = path + "%.0f" % time.time()
+                        filename = path + "%.0f" % (time.time()-start_time)
                         sol.save(filename)
                     sol_wing_area = sol("S").magnitude
                     sol_wing_length = ((sol("A").magnitude)*float(sol_wing_area))**.5
