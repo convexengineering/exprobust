@@ -12,7 +12,7 @@ monte_up = [{k.name: stats.truncnorm.rvs(-3, 3, loc=v,
             for _ in range(N)]
 
 
-def monte_carlo_results(m, progress=None, out=None, sol=None):
+def monte_carlo_results(m, progress=None, out=None, sol=None, quiet=False):
     NamedVariables.reset_modelnumbers()
     try:
         if sol is None:
@@ -20,7 +20,7 @@ def monte_carlo_results(m, progress=None, out=None, sol=None):
         if out:
             with out:
                 print("Fuel consumption: %i lbs" % sol("W_f").to("lbf").magnitude)
-        else:
+        elif not quiet:
             print("Fuel consumption: %i lbs" % sol("W_f").to("lbf").magnitude)
     except Exception:
         return (None, None)
@@ -45,7 +45,7 @@ def monte_carlo_results(m, progress=None, out=None, sol=None):
         if out:
             with out:
                 print("    Failure rate: % 2.1f%% " % (100*failures/float(N)))
-        else:
+        elif not quiet:
             print("    Failure rate: % 2.1f%% " % (100*failures/float(N)))
         return (sol("W_f").to("lbf").magnitude, 100*failures/float(N))
 
