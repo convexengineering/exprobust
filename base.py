@@ -195,12 +195,13 @@ def setup(levers, subs, model_gen, condition, exp=True):
         m.substitutions.update(subs(levers))
         cond = str([lever.value for lever in levers])
         out.clear_output()
+        point_time = time.time()-start_time
         
         if cond in iconds:
             with out:
                 print(cond + " already tested")
                 print("Infeasible Conditions")
-                filename = path + "%.0f_repeat" % (time.time()-start_time) + ".txt"
+                filename = path + "%.0f_repeat_infeas" % point_time + ".txt"
                 f = open(filename, "w+")
                 f.write(str(cond))
                 f.close()
@@ -211,9 +212,10 @@ def setup(levers, subs, model_gen, condition, exp=True):
                 i = conds.index(cond)
                 print("Fuel consumption: %i lbs" % x[i])
                 print("    Failure rate: % 2.1f%% " % y[i])
-                filename = path + "%.0f_repeat" % (time.time()-start_time) + ".txt"
+                filename = path + "%.0f_repeat" % point_time + ".txt"
                 f = open(filename, "w+")
-                f.write(str(cond))
+                f.write(str(cond) +"\n")
+                f.write(str(x[i]) + ", " + str(y[i]))
                 f.close()
         
         else:
@@ -223,11 +225,6 @@ def setup(levers, subs, model_gen, condition, exp=True):
             try:
                 if condition in [CONTROL, MARGIN]:
                     sol = m.localsolve(verbosity = 0)
-                    if exp:
-                        filename = path + "%.0f" % (time.time()-start_time)
-                        if not os.path.isdir(path):
-                            os.makedirs(path)
-                        sol.save(filename)
                     sol_wing_area = sol("S").magnitude
                     sol_wing_length = ((sol("A").magnitude)*float(sol_wing_area))**.5
                     sol_fuel = sol("V_f_fuse").magnitude
@@ -236,11 +233,6 @@ def setup(levers, subs, model_gen, condition, exp=True):
                                                                         sol_fuel)
                 elif condition == TUTORIAL:
                     sol = m.solve(verbosity = 0)
-                    if exp:
-                        filename = path + "%.0f" % (time.time()-start_time)
-                        if not os.path.isdir(path):
-                            os.makedirs(path)
-                        sol.save(filename)
                     size = (sol("S_a").magnitude)/2
                     diagram.data[0].x, diagram.data[0].y = draw_diagram(16*size, 
                                                                         23*size, 
@@ -248,24 +240,25 @@ def setup(levers, subs, model_gen, condition, exp=True):
                 else:
                     sol = m.robustsolve(verbosity=0)
                     m = SimPleAC()
-                    if exp:
-                        filename = path + "%.0f" % (time.time()-start_time)
-                        if not os.path.isdir(path):
-                            os.makedirs(path)
-                        sol.save(filename)
                     sol_wing_area = sol("S").magnitude
                     sol_wing_length = ((sol("A").magnitude)*float(sol_wing_area))**.5
                     sol_fuel = sol("V_f_fuse").magnitude
                     diagram.data[0].x, diagram.data[0].y = draw_diagram(sol_wing_length, 
                                                                         sol_wing_area, 
                                                                         sol_fuel)
+                if exp:
+                    filename = path + "%.0f" % point_time
+                    if not os.path.isdir(path):
+                        os.makedirs(path)
+                    sol.save(filename)
+
             except Exception as e:
                 with out:
                     print("Infeasible Conditions")
                 with ifeas:
                     print(cond)
                 iconds.append(cond)
-                filename = path + "%.0f_infeas" % (time.time()-start_time) + ".txt"
+                filename = path + "%.0f_infeas" % point_time + ".txt"
                 f = open(filename, "w+")
                 f.write(str(cond) +"\n")
                 f.write(str(e))
@@ -284,11 +277,18 @@ def setup(levers, subs, model_gen, condition, exp=True):
                 progress.layout.visibility = None
                 performance, failure = monte_carlo_results(m, progress, out, sol=sol)
 
+            if exp:
+                filename = path + "%.0f_point" % point_time + ".txt"
+                f = open(filename, "w+")
+                f.write(str(cond) +"\n")
+                f.write(str(performance)+", "+str(failure))
+                f.close()
+
             if performance:
                 x.append(performance)
                 y.append(failure)
                 conds.append(cond)
-                times.append(time.time()-start_time)
+                times.append(point_time)
                 fig.data[0].x = x
                 fig.data[0].y = y
                 fig.data[0].hovertext = conds

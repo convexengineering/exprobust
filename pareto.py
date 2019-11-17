@@ -5,7 +5,7 @@ from monte_carlo import monte_carlo_results
 from simpleac import SimPleAC
 
 # pareto_points = [((perf, fail), [id#, ...]), ...]
-def pareto_regions(folder_name, m=SimPleAC()):
+def pareto_regions(folder_name, model_gen=SimPleAC):
     pareto_points = []
     regions = {}
     for subject in sorted(os.listdir(folder_name)):
@@ -23,7 +23,7 @@ def pareto_regions(folder_name, m=SimPleAC()):
             same = None
             f = open(subj_path + "/" + point, "rb")
             sol = pickle.load(f)
-            perf, fail = monte_carlo_results(m, sol=sol, quiet=True)
+            perf, fail = monte_carlo_results(model_gen(), sol=sol, quiet=True)
             for i, pareto_point in enumerate(pareto_points):
                 if (pareto_point[0][0] < perf and pareto_point[0][1] < fail):
                     im_pareto = False
@@ -65,5 +65,5 @@ def pareto_regions(folder_name, m=SimPleAC()):
 if __name__ == "__main__":
     print(pareto_regions("./data/control/"))
     print(pareto_regions("./data/margin/"))
-    print(pareto("./data/robust_performance/"))
-    print(pareto("./data/robust_gamma/"))
+    print(pareto_regions("./data/robust_performance/"))
+    print(pareto_regions("./data/robust_gamma/"))
