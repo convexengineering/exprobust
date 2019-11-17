@@ -6,17 +6,17 @@ from monte_carlo import monte_carlo_results
 from simpleac import SimPleAC
 
 
-def save_point(point_path, model_gen=SimPleAC):
+def save_point(point_path, point_end="_point.txt", model_gen=SimPleAC, seed=246):
     with open(point_path, "rb") as f:
         sol = pickle.load(f)
-        perf, fail = monte_carlo_results(model_gen(), sol=sol, quiet=True)
+        perf, fail = monte_carlo_results(model_gen(), sol=sol, quiet=True, seed=seed)
     with open(point_path + "_point.txt", "w") as f:
         f.write("unknown\n")
         f.write(str(perf)+", "+str(fail))
     return perf, fail
 
 
-def get_points(folder_name, model_gen=SimPleAC):
+def get_points(folder_name, point_end="_point.txt", model_gen=SimPleAC, seed=246):
     pointids = {}
     idpoints = {}
     ids = sorted(os.listdir(folder_name))
@@ -27,12 +27,12 @@ def get_points(folder_name, model_gen=SimPleAC):
                          if not x.endswith(".txt")], key = int)
         for subj_point in subj_points:
             point_path = subj_path + "/" + subj_point
-            if os.path.isfile(point_path + "_point.txt"):
-                with open(point_path + "_point.txt", "r") as f:
+            if os.path.isfile(point_path + point_end):
+                with open(point_path + point_end, "r") as f:
                     pf_line = f.readlines()[1]
                     perf, fail = [float(x) for x in pf_line.split(", ")]
             else:
-                perf, fail = save_point(point_path, model_gen=model_gen)
+                perf, fail = save_point(point_path, point_end=point_end, model_gen=model_gen, seed=seed)
             if (perf, fail) in pointids:
                 if subject not in pointids[(perf, fail)]:
                     pointids[(perf, fail)].append(subject)
