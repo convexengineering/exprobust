@@ -10,7 +10,7 @@ def save_point(point_path, point_end="_point.txt", model_gen=SimPleAC, seed=246)
     with open(point_path, "rb") as f:
         sol = pickle.load(f)
         perf, fail = monte_carlo_results(model_gen(), sol=sol, quiet=True, seed=seed)
-    with open(point_path + "_point.txt", "w") as f:
+    with open(point_path + point_end, "w") as f:
         f.write("unknown\n")
         f.write(str(perf)+", "+str(fail))
     return perf, fail
@@ -133,18 +133,50 @@ def compensation(pareto_points, regions, idfile, outfile):
         odf.to_excel(writer)
 
 
-if __name__ == "__main__":
-    pointids, idpoints = get_points("./data/control/")
-    #pointids, idpoints = get_points("./data/margin/")
-    #pointids, idpoints = get_points("./data/robust_performance/")
-    #pointids, idpoints = get_points("./data/robust_gamma/")
+def fragility(folder_name, title, model_gen=SimPleAC, seed=358):
+    point_end = "_frag%i.txt" %seed
+    pointids, idpoints = get_points(folder_name, point_end, model_gen, seed)
     pps = pareto(pointids)
     regions = count_regions(idpoints)
-    heatmap_points(pps, "Control")
-    #heatmap_points(pps, "Margin")
-    #heatmap_points(pps, "Robust Performance")
-    #heatmap_points(pps, "Robust Gamma")
+    heatmap_points(pointids, "All Fragility Points: " + title)
+    heatmap_points(pps, "Pareto Fragility Points: " + title)
+
+
+if __name__ == "__main__":
+    '''
+    pointids, idpoints = get_points("./data/control/")
+    pps = pareto(pointids)
+    regions = count_regions(idpoints)
+    heatmap_points(pointids, "All Points: Control")
+    heatmap_points(pps, "Pareto Points: Control")
     compensation(pps, regions, "./Participant ID and Email (Responses).xlsx", "control_money.xlsx")
-    #compensation(pps, regions, "./Participant ID and Email (Responses).xlsx", "margin_money.xlsx")
-    #compensation(pps, regions, "./Participant ID and Email (Responses).xlsx", "robperf_money.xlsx")
-    #compensation(pps, regions, "./Participant ID and Email (Responses).xlsx", "robgamma_money.xlsx")
+    fragility("./data/control/", "Control")
+    '''
+    '''
+    pointids, idpoints = get_points("./data/margin/")
+    pps = pareto(pointids)
+    regions = count_regions(idpoints)
+    heatmap_points(pointids, "All Points: Margin")
+    heatmap_points(pps, "Pareto Points: Margin")
+    compensation(pps, regions, "./Participant ID and Email (Responses).xlsx", "margin_money.xlsx")
+    fragility("./data/margin/", "Margin")
+    '''
+    '''
+    pointids, idpoints = get_points("./data/robust_performance/")
+    pps = pareto(pointids)
+    regions = count_regions(idpoints)
+    heatmap_points(pointids, "All Points: Robust Performance")
+    heatmap_points(pps, "Pareto Points: Robust Performance")
+    compensation(pps, regions, "./Participant ID and Email (Responses).xlsx", "robperf_money.xlsx")
+    fragility("./data/robust_performance/", "Robust Performance")
+    '''
+    '''
+    pointids, idpoints = get_points("./data/robust_gamma/")
+    pps = pareto(pointids)
+    regions = count_regions(idpoints)
+    heatmap_points(pointids, "All Points: Robust Gamma")
+    heatmap_points(pps, "Pareto Points: Robust Gamma")
+    compensation(pps, regions, "./Participant ID and Email (Responses).xlsx", "robgamma_money.xlsx")
+    fragility("./data/robust_gamma/", "Robust Gamma")
+    '''
+    
