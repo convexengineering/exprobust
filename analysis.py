@@ -1,17 +1,20 @@
 import os
 import pickle
 import pandas as pd
+import numpy as np
 import plotly.graph_objects as go
 from monte_carlo import monte_carlo_results
 from simpleac import SimPleAC
 
+analysis_plot_dir = "analysis"
 
-def save_point(point_path, point_end="_point.txt", model_gen=SimPleAC, seed=246):
+
+def save_point(point_path, point_end="_point.txt", model_gen=SimPleAC, seed=246, conditions="unknown"):
     with open(point_path, "rb") as f:
         sol = pickle.load(f)
         perf, fail = monte_carlo_results(model_gen(), sol=sol, quiet=True, seed=seed)
     with open(point_path + point_end, "w") as f:
-        f.write("unknown\n")
+        f.write(conditions + "\n")
         f.write(str(perf)+", "+str(fail))
     return perf, fail
 
@@ -19,6 +22,7 @@ def save_point(point_path, point_end="_point.txt", model_gen=SimPleAC, seed=246)
 def get_points(folder_name, point_end="_point.txt", model_gen=SimPleAC, seed=246):
     pointids = {}
     idpoints = {}
+    pointnum = {}
     ids = sorted(os.listdir(folder_name))
     for subject in ids:
         idpoints[subject] = []
@@ -36,10 +40,11 @@ def get_points(folder_name, point_end="_point.txt", model_gen=SimPleAC, seed=246
             if (perf, fail) in pointids:
                 if subject not in pointids[(perf, fail)]:
                     pointids[(perf, fail)].append(subject)
+                    pointnum[(perf, fail, subject)] = subj_point
             else:
                 pointids[(perf, fail)] = [subject]
             idpoints[subject].append((perf,fail))
-    return pointids, idpoints
+    return pointids, idpoints, pointnum
 
 
 def count_regions(idpoints):
@@ -65,11 +70,12 @@ def count_regions(idpoints):
     return regions
 
 
-# pareto_points = [((perf, fail), [id#, ...]), ...]
 def pareto(pointids):
     pareto_points = {}
     for point in pointids:
         perf, fail = point
+        if (perf < 900 or perf > 2000):
+            continue
         im_pareto = True
         im_not_pareto = []
         same = None
@@ -86,25 +92,132 @@ def pareto(pointids):
     return pareto_points
 
 
-def heatmap_points(points, title):
+def plot_points(points, title):
     x, y = list(zip(*points.keys()))
     colors = [len(ids) for ids in points.values()]
-    #xy, colors = list(zip(*points))
-    #colors = [len(color) for color in colors]
-    #x, y = list(zip(*xy))
     fig = go.Figure(
         data=[go.Scatter(
             x=x, 
             y=y, 
             marker=dict(
-                size=12,
+                size=6,
                 color=colors,
-                opacity=0.8,
-                colorbar=dict(title="Colorbar"),
-                colorscale="plasma"),
+                cmin = 0,
+                cmax = 8,
+                opacity=0.6,
+                colorbar=dict(
+                    title="",
+                    outlinewidth=0,
+                    tickwidth=0,
+                    tickcolor='white'),
+                colorscale="magma"),
             mode="markers")],
         layout_title_text=title)
+    fig.update_layout(
+        autosize=False,
+        width=800,
+        height=600,
+        yaxis=go.layout.YAxis(
+            title_text="Failure Rate",
+            range=[0,100],
+            tickmode = 'array',
+            tickvals = [0, 10, 20, 30, 40, 50, 60, 70, 80, 90, 100],
+            ticktext = ["0%", "10%", "20%", "30%", "40%", "50%", "60%", "70%", "80%", "90%", "100%"]
+        ),
+        xaxis=go.layout.XAxis(
+            title_text="Fuel Consumed (lbs)",
+            range=[900,2000]
+        )
+    )
+    fig.add_shape(
+        go.layout.Shape(
+            type="rect",
+            x0=1200,
+            y0=0,
+            x1=2000,
+            y1=10,
+            fillcolor="rgba(240,255,220,0.4)",
+            line=dict(
+                color="white",
+                width=1,
+            ),
+    ))
+    fig.add_shape(
+        go.layout.Shape(
+            type="rect",
+            x0=900,
+            y0=30,
+            x1=1100,
+            y1=100,
+            fillcolor="rgba(220,255,240,0.4)",
+            line=dict(
+                color="white",
+                width=1,
+            ),
+    ))
+    fig.add_shape(
+        go.layout.Shape(
+            type="rect",
+            x0=900,
+            y0=0,
+            x1=1200,
+            y1=30,
+            fillcolor="rgba(200,255,200,0.4)",
+            line=dict(
+                color="white",
+                width=1,
+            ),
+    ))
+    fig.update_shapes(dict(xref='x', yref='y'))
     fig.show()
+    if not os.path.exists(analysis_plot_dir):
+        os.mkdir(analysis_plot_dir)
+    fig.write_image(analysis_plot_dir+"/"+title+".png")
+
+
+def heatmap_points(points, title):
+    hmap = np.zeros((51, 112)) +.0001
+    for perf, fail in points:
+        i_col = min(max(int((perf-900)/10)+1, 0), 111)
+        i_row = int(fail/2)
+        hmap[i_row, i_col] += 1
+    hmap = np.log(hmap)
+    ticks = np.round(np.logspace(np.log10(5),np.log10(80),5))
+    x = [0] + list(np.linspace(900, 2000, 111)) + [6000]
+    y = list(np.linspace(0, 100, 51))
+    fig = go.Figure(
+        data=[go.Heatmap(
+            x=x, 
+            y=y, 
+            z=hmap,
+            type = 'heatmap',
+            zmin=-1,
+            zmax=np.log(80),
+            colorbar=dict(
+                tickvals=np.log(ticks),
+                ticktext=ticks),
+            colorscale="magma")],
+        layout_title_text=title)
+    fig.update_layout(
+        autosize=False,
+        width=800,
+        height=600,
+        yaxis=go.layout.YAxis(
+            title_text="Failure Rate",
+            range=[0,100],
+            tickmode = 'array',
+            tickvals = [0, 10, 20, 30, 40, 50, 60, 70, 80, 90, 100],
+            ticktext = ["0%", "10%", "20%", "30%", "40%", "50%", "60%", "70%", "80%", "90%", "100%"]
+        ),
+        xaxis=go.layout.XAxis(
+            title_text="Fuel Consumed (lbs)",
+            range=[900,2000]
+        )
+    )
+    fig.show()
+    if not os.path.exists(analysis_plot_dir):
+        os.mkdir(analysis_plot_dir)
+    fig.write_image(analysis_plot_dir+"/"+title+".png")
 
 
 def compensation(pareto_points, regions, idfile, outfile):
@@ -135,48 +248,43 @@ def compensation(pareto_points, regions, idfile, outfile):
 
 def fragility(folder_name, title, model_gen=SimPleAC, seed=358):
     point_end = "_frag%i.txt" %seed
-    pointids, idpoints = get_points(folder_name, point_end, model_gen, seed)
+    pointids, _, pointnum = get_points(folder_name, model_gen=model_gen, seed=seed)
+    fragpointids, _, _ = get_points(folder_name, point_end, model_gen, seed)
+    pps = pareto(pointids)
+    fragpps = {}
+    for pp in pps:
+        for subject in pps[pp]:
+            subj_point = pointnum[(*pp, subject)]
+            point_path = folder_name + subject + "/" + subj_point
+            with open(point_path + point_end, "r") as f:
+                pf_line = f.readlines()[1]
+                perf, fail = [float(x) for x in pf_line.split(", ")]
+            if (perf, fail) in fragpps:
+                if subject not in fragpps[(perf, fail)]:
+                    fragpps[(perf, fail)].append(subject)
+            else:
+                fragpps[(perf, fail)] = [subject]
+    
     pps = pareto(pointids)
     regions = count_regions(idpoints)
-    heatmap_points(pointids, "All Fragility Points: " + title)
-    heatmap_points(pps, "Pareto Fragility Points: " + title)
+    plot_points(fragpointids, "All Fragility Points-" + title)
+    plot_points(fragpps, "Pareto Fragility Points-" + title)
+
+
+def all_analysis(folder_name, condition):
+    pointids, idpoints, _ = get_points(folder_name)
+    pps = pareto(pointids)
+    regions = count_regions(idpoints)
+    plot_points(pointids, "All Points-"+condition)
+    plot_points(pps, "Pareto Points-"+condition)
+    heatmap_points(pointids, "Heatmap-"+condition)
+    compensation(pps, regions, "./Participant ID and Email (Responses).xlsx", condition+"_Money.xlsx")
+    fragility(folder_name, condition)
 
 
 if __name__ == "__main__":
-    '''
-    pointids, idpoints = get_points("./data/control/")
-    pps = pareto(pointids)
-    regions = count_regions(idpoints)
-    heatmap_points(pointids, "All Points: Control")
-    heatmap_points(pps, "Pareto Points: Control")
-    compensation(pps, regions, "./Participant ID and Email (Responses).xlsx", "control_money.xlsx")
-    fragility("./data/control/", "Control")
-    '''
-    '''
-    pointids, idpoints = get_points("./data/margin/")
-    pps = pareto(pointids)
-    regions = count_regions(idpoints)
-    heatmap_points(pointids, "All Points: Margin")
-    heatmap_points(pps, "Pareto Points: Margin")
-    compensation(pps, regions, "./Participant ID and Email (Responses).xlsx", "margin_money.xlsx")
-    fragility("./data/margin/", "Margin")
-    '''
-    '''
-    pointids, idpoints = get_points("./data/robust_performance/")
-    pps = pareto(pointids)
-    regions = count_regions(idpoints)
-    heatmap_points(pointids, "All Points: Robust Performance")
-    heatmap_points(pps, "Pareto Points: Robust Performance")
-    compensation(pps, regions, "./Participant ID and Email (Responses).xlsx", "robperf_money.xlsx")
-    fragility("./data/robust_performance/", "Robust Performance")
-    '''
-    '''
-    pointids, idpoints = get_points("./data/robust_gamma/")
-    pps = pareto(pointids)
-    regions = count_regions(idpoints)
-    heatmap_points(pointids, "All Points: Robust Gamma")
-    heatmap_points(pps, "Pareto Points: Robust Gamma")
-    compensation(pps, regions, "./Participant ID and Email (Responses).xlsx", "robgamma_money.xlsx")
-    fragility("./data/robust_gamma/", "Robust Gamma")
-    '''
-    
+    all_analysis("./data/control/", "Control")
+    all_analysis("./data/margin/", "Margin")
+    all_analysis("./data/robust_performance/", "Robust Performance")
+    all_analysis("./data/robust_gamma/", "Robust Gamma")
+
