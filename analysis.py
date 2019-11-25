@@ -6,7 +6,7 @@ import plotly.graph_objects as go
 from monte_carlo import monte_carlo_results
 from simpleac import SimPleAC
 
-analysis_plot_dir = "analysis"
+analysis_plot_dir = "./analysis"
 
 
 def save_point(point_path, point_end="_point.txt", model_gen=SimPleAC, seed=246, conditions="unknown"):
@@ -103,8 +103,8 @@ def plot_points(points, title):
             marker=dict(
                 size=6,
                 color=colors,
-                cmin = 0,
-                cmax = 8,
+                cmin=0,
+                cmax=8,
                 opacity=0.6,
                 colorbar=dict(
                     title="",
@@ -121,9 +121,9 @@ def plot_points(points, title):
         yaxis=go.layout.YAxis(
             title_text="Failure Rate",
             range=[0,100],
-            tickmode = 'array',
-            tickvals = [0, 10, 20, 30, 40, 50, 60, 70, 80, 90, 100],
-            ticktext = ["0%", "10%", "20%", "30%", "40%", "50%", "60%", "70%", "80%", "90%", "100%"]
+            tickmode='array',
+            tickvals=[0, 10, 20, 30, 40, 50, 60, 70, 80, 90, 100],
+            ticktext=["0%", "10%", "20%", "30%", "40%", "50%", "60%", "70%", "80%", "90%", "100%"]
         ),
         xaxis=go.layout.XAxis(
             title_text="Fuel Consumed (lbs)",
@@ -275,17 +275,18 @@ def fragility(folder_name, title, model_gen=SimPleAC, seed=358):
 def all_analysis(folder_name, condition):
     pointids, idpoints, _ = get_points(folder_name)
     pps = pareto(pointids)
-    #regions = count_regions(idpoints)
+    regions = count_regions(idpoints)
     plot_points(pointids, "All Points-" + condition)
     plot_points(pps, "Pareto Points-" + condition)
     heatmap_points(pointids, "Heatmap-" + condition)
-    #compensation(pps, regions, "./Participant ID and Email (Responses).xlsx", condition+"_Money.xlsx")
-    #fragility(folder_name, condition)
-    #fragility(folder_name, condition, seed=839)
+    compensation(pps, regions, "./Participant ID and Email (Responses).xlsx",
+                 analysis_plot_dir + condition + "_Money.xlsx")
+    fragility(folder_name, condition)
+    fragility(folder_name, condition, seed=839)
 
 
 if __name__ == "__main__":
-    #all_analysis("./data/control/", "Control")
+    all_analysis("./data/control/", "Control")
     all_analysis("./data/margin/", "Margin")
     all_analysis("./data/robust_performance/", "Robust Performance")
     all_analysis("./data/robust_gamma/", "Robust Gamma")
