@@ -43,6 +43,7 @@ def get_points(folder_name, point_end="_point.txt", model_gen=SimPleAC, seed=246
                     pointnum[(perf, fail, subject)] = subj_point
             else:
                 pointids[(perf, fail)] = [subject]
+                pointnum[(perf, fail, subject)] = subj_point
             idpoints[subject].append((perf,fail))
     return pointids, idpoints, pointnum
 
@@ -266,24 +267,25 @@ def fragility(folder_name, title, model_gen=SimPleAC, seed=358):
                 fragpps[(perf, fail)] = [subject]
     
     pps = pareto(pointids)
-    regions = count_regions(idpoints)
-    plot_points(fragpointids, "All Fragility Points-" + title)
-    plot_points(fragpps, "Pareto Fragility Points-" + title)
+    plot_points(fragpointids, "All Fragility Points-" + title + " (seed %i)" %seed)
+    plot_points(fragpps, "Pareto Fragility Points-" + title + " (seed %i)" %seed)
+    heatmap_points(fragpointids, "Fragility Heatmap-" + title + " (seed %i)" %seed)
 
 
 def all_analysis(folder_name, condition):
     pointids, idpoints, _ = get_points(folder_name)
     pps = pareto(pointids)
-    regions = count_regions(idpoints)
-    plot_points(pointids, "All Points-"+condition)
-    plot_points(pps, "Pareto Points-"+condition)
-    heatmap_points(pointids, "Heatmap-"+condition)
-    compensation(pps, regions, "./Participant ID and Email (Responses).xlsx", condition+"_Money.xlsx")
-    fragility(folder_name, condition)
+    #regions = count_regions(idpoints)
+    plot_points(pointids, "All Points-" + condition)
+    plot_points(pps, "Pareto Points-" + condition)
+    heatmap_points(pointids, "Heatmap-" + condition)
+    #compensation(pps, regions, "./Participant ID and Email (Responses).xlsx", condition+"_Money.xlsx")
+    #fragility(folder_name, condition)
+    #fragility(folder_name, condition, seed=839)
 
 
 if __name__ == "__main__":
-    all_analysis("./data/control/", "Control")
+    #all_analysis("./data/control/", "Control")
     all_analysis("./data/margin/", "Margin")
     all_analysis("./data/robust_performance/", "Robust Performance")
     all_analysis("./data/robust_gamma/", "Robust Gamma")
