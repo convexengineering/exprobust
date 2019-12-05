@@ -6,7 +6,7 @@ import plotly.graph_objects as go
 from monte_carlo import monte_carlo_results
 from simpleac import SimPleAC
 
-analysis_plot_dir = "./analysis"
+analysis_plot_dir = "./analysis/"
 
 
 def save_point(point_path, point_end="_point.txt", model_gen=SimPleAC, seed=246, conditions="unknown"):
@@ -173,7 +173,7 @@ def plot_points(points, title):
     fig.show()
     if not os.path.exists(analysis_plot_dir):
         os.mkdir(analysis_plot_dir)
-    fig.write_image(analysis_plot_dir+"/"+title+".png")
+    fig.write_image(analysis_plot_dir+title+".png")
 
 
 def heatmap_points(points, title):
@@ -218,7 +218,7 @@ def heatmap_points(points, title):
     fig.show()
     if not os.path.exists(analysis_plot_dir):
         os.mkdir(analysis_plot_dir)
-    fig.write_image(analysis_plot_dir+"/"+title+".png")
+    fig.write_image(analysis_plot_dir+title+".png")
 
 
 def compensation(pareto_points, regions, idfile, outfile):
@@ -281,8 +281,8 @@ def all_analysis(folder_name, condition):
     heatmap_points(pointids, "Heatmap-" + condition)
     compensation(pps, regions, "./Participant ID and Email (Responses).xlsx",
                  analysis_plot_dir + condition + "_Money.xlsx")
-    fragility(folder_name, condition)
-    fragility(folder_name, condition, seed=839)
+    #fragility(folder_name, condition)
+    #fragility(folder_name, condition, seed=839)
 
 
 if __name__ == "__main__":
