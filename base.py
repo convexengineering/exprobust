@@ -112,8 +112,7 @@ def setup(levers, subs, model_gen, condition, exp=True):
             ),
     ))
     fig.update_shapes(dict(xref='x', yref='y'))
-    fig.add_trace(
-        go.Scatter(mode = 'lines+markers'))
+    fig.add_trace(go.Scatter(mode='lines+markers'))
     diagram = go.FigureWidget();
     diagram.add_scatter(line={"color": "black"});
     diagram.update_layout(

@@ -5,14 +5,14 @@ from simpleac import SimPleAC
 
 m = SimPleAC()
 N = 100
-np.random.seed(seed=246)
-monte_up = [{k.name: stats.truncnorm.rvs(-3, 3, loc=v,
-                                         scale=(v*k.key.orig_pr/300.))
-             for k, v in list(m.substitutions.items()) if k.pr}
-            for _ in range(N)]
 
 
-def monte_carlo_results(m, progress=None, out=None, sol=None, quiet=False):
+def monte_carlo_results(m, progress=None, out=None, sol=None, quiet=False, seed=246):
+    np.random.seed(seed=seed)
+    monte_up = [{k.name: stats.truncnorm.rvs(-3, 3, loc=v,
+                                             scale=(v*k.key.orig_pr/300.))
+                 for k, v in list(m.substitutions.items()) if k.pr}
+                for _ in range(N)]
     NamedVariables.reset_modelnumbers()
     try:
         if sol is None:
