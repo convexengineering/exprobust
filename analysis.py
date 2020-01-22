@@ -2,19 +2,23 @@ import os
 import pickle
 import pandas as pd
 import numpy as np
+import scipy.stats as stats
+import itertools
 import plotly.graph_objects as go
 from monte_carlo import monte_carlo_results
 from simpleac import SimPleAC
 
 analysis_plot_dir = "./analysis/"
+folder_names = ["./data/control/", "./data/margin/", "./data/robust_performance/", "./data/robust_gamma/"]
+conditions = ["Control", "Margin", "Robust Performance", "Robust Gamma"]
 
 
-def save_point(point_path, point_end="_point.txt", model_gen=SimPleAC, seed=246, conditions="unknown"):
+def save_point(point_path, point_end="_point.txt", model_gen=SimPleAC, seed=246, settings="unknown"):
     with open(point_path, "rb") as f:
         sol = pickle.load(f)
         perf, fail = monte_carlo_results(model_gen(), sol=sol, quiet=True, seed=seed)
     with open(point_path + point_end, "w") as f:
-        f.write(conditions + "\n")
+        f.write(settings + "\n")
         f.write(str(perf)+", "+str(fail))
     return perf, fail
 
@@ -50,25 +54,28 @@ def get_points(folder_name, point_end="_point.txt", model_gen=SimPleAC, seed=246
 
 def count_regions(idpoints):
     regions = {}
+    numregions = {}
     for idnum in idpoints:
         regions[idnum] = 0
-        in_green = False
-        in_blue = False
-        in_yellow = False
+        in_green = 0
+        in_yellow = 0
+        in_blue = 0
         for point in idpoints[idnum]:
             perf, fail = point
-            if (not in_green and (perf <= 1200 and fail <= 30)):
-                regions[idnum] += 1
-                in_green = True
-            elif (not in_yellow and (perf <= 2000 and fail <= 10)):
-                regions[idnum] += 1
-                in_yellow = True
-            elif (not in_blue and (perf <= 1100)):
-                regions[idnum] += 1
-                in_blue = True
-            if in_green and (in_blue and in_yellow):
-                break
-    return regions
+            if (perf <= 1200 and fail <= 30):
+                in_green += 1
+            elif (perf <= 2000 and fail <= 10):
+                in_yellow += 1
+            elif (perf <= 1100):
+                in_blue += 1
+        if in_green>0:
+            regions[idnum] +=1
+        if in_yellow>0:
+            regions[idnum] +=1
+        if in_blue>0:
+            regions[idnum] +=1
+        numregions[idnum] = (in_green, in_yellow, in_blue)
+    return regions, numregions
 
 
 def pareto(pointids):
@@ -231,7 +238,7 @@ def compensation(pareto_points, regions, idfile, outfile):
     for idnum in regions:
         comp[idnum] = base_money + regions[idnum] * per_region
         if regions[idnum] == 3:
-            comp[idnum] += 1
+            comp[idnum] += all_3
     for pareto_point in pareto_points:
         ids = pareto_points[pareto_point]
         point_divide = len(ids)
@@ -249,7 +256,7 @@ def compensation(pareto_points, regions, idfile, outfile):
 
 def fragility(folder_name, title, model_gen=SimPleAC, seed=358):
     point_end = "_frag%i.txt" %seed
-    pointids, _, pointnum = get_points(folder_name, model_gen=model_gen, seed=seed)
+    pointids, _, pointnum = get_points(folder_name, model_gen=model_gen)
     fragpointids, _, _ = get_points(folder_name, point_end, model_gen, seed)
     pps = pareto(pointids)
     fragpps = {}
@@ -275,19 +282,106 @@ def fragility(folder_name, title, model_gen=SimPleAC, seed=358):
 def all_analysis(folder_name, condition):
     pointids, idpoints, _ = get_points(folder_name)
     pps = pareto(pointids)
-    regions = count_regions(idpoints)
+    regions, _ = count_regions(idpoints)
     plot_points(pointids, "All Points-" + condition)
     plot_points(pps, "Pareto Points-" + condition)
     heatmap_points(pointids, "Heatmap-" + condition)
     compensation(pps, regions, "./Participant ID and Email (Responses).xlsx",
                  analysis_plot_dir + condition + "_Money.xlsx")
-    #fragility(folder_name, condition)
-    #fragility(folder_name, condition, seed=839)
+
+    fragility(folder_name, condition)
+    fragility(folder_name, condition, seed=839)
+
+
+def summary_stats():
+    numpoints = {condition: [] for condition in conditions}
+    numgreen = {condition: [] for condition in conditions}
+    numyellow = {condition: [] for condition in conditions}
+    numblue = {condition: [] for condition in conditions}
+    numout = {condition: [] for condition in conditions}
+    norm_numgreen = {condition: [] for condition in conditions}
+    norm_numyellow = {condition: [] for condition in conditions}
+    norm_numblue = {condition: [] for condition in conditions}
+    norm_numout = {condition: [] for condition in conditions}
+    endtimes = {condition: [] for condition in conditions}
+    timesgreen = {condition: [] for condition in conditions}
+    timesyellow = {condition: [] for condition in conditions}
+    timesblue = {condition: [] for condition in conditions}
+    for folder_name, condition in zip(folder_names, conditions):
+        _, idpoints, pointnum = get_points(folder_name)
+        numpoints[condition] = [len(idpoints[idnum]) for idnum in idpoints]
+        _, numregions = count_regions(idpoints)
+        numgreen[condition], numyellow[condition], numblue[condition] = list(zip(*numregions.values()))
+        numout[condition] = np.subtract(np.subtract(np.subtract(numpoints[condition], numgreen[condition]), numyellow[condition]), numblue[condition])
+        norm_numgreen[condition] = np.divide(numgreen[condition], numpoints[condition])
+        norm_numyellow[condition] = np.divide(numyellow[condition], numpoints[condition])
+        norm_numblue[condition] = np.divide(numblue[condition], numpoints[condition])
+        norm_numout[condition] = np.divide(numout[condition], numpoints[condition])
+        times = {idnum: [] for idnum in idpoints}
+        timegreen = {idnum: None for idnum in idpoints}
+        timeyellow = {idnum: None for idnum in idpoints}
+        timeblue = {idnum: None for idnum in idpoints}
+        for point in pointnum:
+            times[point[2]].append(int(pointnum[point]))
+            if (timegreen[point[2]] is None and (point[0] <= 1200 and point[1] <= 30)):
+                timegreen[point[2]] = int(pointnum[point])
+            elif (timeyellow[point[2]] is None and ((point[0] <= 2000 and point[0] > 1200) and point[1] <= 10)):
+                timeyellow[point[2]] = int(pointnum[point])
+            elif (timeblue[point[2]] is None and (point[0] <= 1100 and point[1] > 30)):
+                timeblue[point[2]] = int(pointnum[point])
+        timesgreen[condition] = [timegreen[idnum] - min(times[idnum]) for idnum in times if timegreen[idnum] is not None]
+        timesyellow[condition] = [timeyellow[idnum] - min(times[idnum]) for idnum in times if timeyellow[idnum] is not None]
+        timesblue[condition] = [timeblue[idnum] - min(times[idnum]) for idnum in times if timeblue[idnum] is not None]
+        endtimes[condition] = [max(times[idnum]) - min(times[idnum]) for idnum in times]
+        
+        print(condition + " Time to Yellow")
+        print(timesyellow[condition])
+        print("Average: %f" %np.mean(timesyellow[condition]))
+        print("StDev: %f" %np.std(timesyellow[condition]))
+        '''
+        print(condition + " Norm Out")
+        print(norm_numout[condition].tolist())
+        print("Average: %f" %np.mean(norm_numout[condition]))
+        print("StDev: %f" %np.std(norm_numout[condition]))
+        '''
+
+    print("T-Tests")
+    for condition1, condition2 in itertools.combinations(conditions, 2):
+        _, pval = stats.ttest_ind(timesyellow[condition1], timesyellow[condition2], equal_var=False, nan_policy='raise')
+        print("%s, %s p-value: %f" %(condition1, condition2, pval))
+    
+    '''
+    fig = go.Figure()
+    for condition in all_numpoints:
+        fig.add_trace(go.Violin(y=all_numpoints[condition],
+                            name=condition,
+                            points='all',
+                            box_visible=True,
+                            meanline_visible=True))
+    fig.update_layout(
+        autosize=False,
+        width=800,
+        height=600,
+        showlegend=False,
+        plot_bgcolor='rgba(0,0,0,0)',
+        xaxis=go.layout.XAxis(
+            title_text="Condition",
+        ),
+        yaxis=go.layout.YAxis(
+            title_text="Number of Points",
+            range=[0,300],
+            ticks="outside",
+            gridcolor='rgba(0,0,0,.1)'
+        )
+    )
+    fig.show()
+    '''
 
 
 if __name__ == "__main__":
-    all_analysis("./data/control/", "Control")
-    all_analysis("./data/margin/", "Margin")
-    all_analysis("./data/robust_performance/", "Robust Performance")
-    all_analysis("./data/robust_gamma/", "Robust Gamma")
+    '''
+    for folder_name, condition in zip(folder_names, conditions):
+        all_analysis(folder_name, condition)
+    '''
+    summary_stats()
 

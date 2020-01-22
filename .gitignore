@@ -2,6 +2,7 @@
 data/
 *.xlsx
 *.xls
+*.zip
 .DS_Store
 analysis/
 
