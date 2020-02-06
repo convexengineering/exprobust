@@ -12,13 +12,51 @@ analysis_plot_dir = "./analysis/"
 folder_names = ["./data/control/", "./data/margin/", "./data/robust_performance/", "./data/robust_gamma/"]
 conditions = ["Control", "Margin", "Robust Performance", "Robust Gamma"]
 
+def determine_settings(condition, folder_name, point_end="_point.txt"):
+    ids = sorted(os.listdir(folder_name))
+    for subject in ids:
+        subj_path = folder_name + subject
+        subj_points = sorted([x for x in os.listdir(subj_path)
+                         if not x.endswith(".txt")], key = int)
+        for subj_point in subj_points:
+            point_path = subj_path + "/" + subj_point
+            if os.path.isfile(point_path + point_end):
+                with open(point_path + point_end, "r") as f:
+                    all_lines = f.readlines()
+                if all_lines[0] == "unknown\n":
+                    settings = []
+                    with open(point_path, "rb") as f:
+                        sol = pickle.load(f)
+                    if condition == conditions[0]:
+                        settings.append((sol("A").magnitude*sol("S").magnitude)**0.5)
+                        settings.append(sol("S").magnitude)
+                        settings.append(sol("V_{f_{avail}}").magnitude)
+                        settings.append(sol("C_L").magnitude)
+                        print(subj_point)
+                        print(settings)
+                        with open(point_path + point_end, "w") as f:
+                            f.write(str(settings)+"\n")
+                            for line in all_lines[1:]:
+                                f.write(line)
+                    elif condition == conditions[1]:
+                        settings.append(sol("m_ww").magnitude)
+                        settings.append(sol("m_tsfc").magnitude)
+                        settings.append(sol("m_vmin").magnitude)
+                        settings.append(sol("m_range").magnitude)
+                        print(subj_point)
+                        print(settings)
+                        with open(point_path + point_end, "w") as f:
+                            f.write(str(settings)+"\n")
+                            for line in all_lines[1:]:
+                                f.write(line)
+
 
 def save_point(point_path, point_end="_point.txt", model_gen=SimPleAC, seed=246, settings="unknown"):
     with open(point_path, "rb") as f:
         sol = pickle.load(f)
         perf, fail = monte_carlo_results(model_gen(), sol=sol, quiet=True, seed=seed)
     with open(point_path + point_end, "w") as f:
-        f.write(settings + "\n")
+        f.write(str(settings) + "\n")
         f.write(str(perf)+", "+str(fail))
     return perf, fail
 
@@ -50,6 +88,56 @@ def get_points(folder_name, point_end="_point.txt", model_gen=SimPleAC, seed=246
                 pointnum[(perf, fail, subject)] = subj_point
             idpoints[subject].append((perf,fail))
     return pointids, idpoints, pointnum
+
+
+def corrected_points(folder_name, point_end="_point.txt", model_gen=SimPleAC, seed=246):
+    pointids = {}
+    idpoints = {}
+    pointnum = {}
+    skipped = {}
+    ids = sorted(os.listdir(folder_name))
+    for subject in ids:
+        idpoints[subject] = []
+        skipped[subject] = []
+        subj_path = folder_name + subject
+        subj_points = sorted([x for x in os.listdir(subj_path)
+                         if not x.endswith(".txt")], key = int)
+        for subj_point in subj_points:
+            perf = None
+            point_path = subj_path + "/" + subj_point
+            if os.path.isfile(point_path + point_end):
+                with open(point_path + point_end, "r") as f:
+                    all_lines = f.readlines()
+                    pf_line = all_lines[1]
+                    _, fail = [float(x) for x in pf_line.split(", ")]
+                    if len(all_lines) >= 3:
+                        perf = all_lines[2] if (all_lines[2] == 'SKIP' or all_lines[2] == 'SKIP\n') else float(all_lines[2])
+            else:
+                _, fail = save_point(point_path, point_end=point_end, model_gen=model_gen, seed=seed)
+            if perf is None:
+                with open(point_path, "rb") as f:
+                    sol = pickle.load(f)
+                    nominal = SimPleAC(substitutions={k: sol(k) for k in ["S", "A", "V_{f_{avail}}", "C_L"]})
+                    try:
+                        nomsol = nominal.localsolve(verbosity=0)
+                        perf = nomsol("W_f").to("lbf").magnitude
+                    except Exception:
+                        perf = "SKIP"
+                with open(point_path + point_end, "a") as f:
+                    f.write("\n" + str(perf))
+            if perf != "SKIP" and perf != "SKIP\n":
+                if (perf, fail) in pointids:
+                    if subject not in pointids[(perf, fail)]:
+                        pointids[(perf, fail)].append(subject)
+                        pointnum[(perf, fail, subject)] = subj_point
+                else:
+                    pointids[(perf, fail)] = [subject]
+                    pointnum[(perf, fail, subject)] = subj_point
+                idpoints[subject].append((perf,fail))
+            else:
+                skipped[subject].append(subj_point)
+
+    return pointids, idpoints, pointnum, skipped
 
 
 def count_regions(idpoints):
@@ -280,17 +368,18 @@ def fragility(folder_name, title, model_gen=SimPleAC, seed=358):
 
 
 def all_analysis(folder_name, condition):
-    pointids, idpoints, _ = get_points(folder_name)
+    #pointids, idpoints, _ = get_points(folder_name)
+    pointids, idpoints, _, _ = corrected_points(folder_name)
     pps = pareto(pointids)
     regions, _ = count_regions(idpoints)
     plot_points(pointids, "All Points-" + condition)
     plot_points(pps, "Pareto Points-" + condition)
     heatmap_points(pointids, "Heatmap-" + condition)
-    compensation(pps, regions, "./Participant ID and Email (Responses).xlsx",
-                 analysis_plot_dir + condition + "_Money.xlsx")
+    #compensation(pps, regions, "./Participant ID and Email (Responses).xlsx",
+    #             analysis_plot_dir + condition + "_Money.xlsx")
 
-    fragility(folder_name, condition)
-    fragility(folder_name, condition, seed=839)
+    #fragility(folder_name, condition)
+    #fragility(folder_name, condition, seed=839)
 
 
 def summary_stats():
@@ -308,7 +397,7 @@ def summary_stats():
     timesyellow = {condition: [] for condition in conditions}
     timesblue = {condition: [] for condition in conditions}
     for folder_name, condition in zip(folder_names, conditions):
-        _, idpoints, pointnum = get_points(folder_name)
+        _, idpoints, pointnum, skipped = corrected_points(folder_name)
         numpoints[condition] = [len(idpoints[idnum]) for idnum in idpoints]
         _, numregions = count_regions(idpoints)
         numgreen[condition], numyellow[condition], numblue[condition] = list(zip(*numregions.values()))
@@ -334,10 +423,12 @@ def summary_stats():
         timesblue[condition] = [timeblue[idnum] - min(times[idnum]) for idnum in times if timeblue[idnum] is not None]
         endtimes[condition] = [max(times[idnum]) - min(times[idnum]) for idnum in times]
         
-        print(condition + " Time to Yellow")
-        print(timesyellow[condition])
-        print("Average: %f" %np.mean(timesyellow[condition]))
-        print("StDev: %f" %np.std(timesyellow[condition]))
+        #print(condition + " Time to Yellow")
+        #print(timesyellow[condition])
+        #print("Average: %f" %np.mean(timesyellow[condition]))
+        #print("StDev: %f" %np.std(timesyellow[condition]))
+        print(condition + " Skipped")
+        print(skipped)
         '''
         print(condition + " Norm Out")
         print(norm_numout[condition].tolist())

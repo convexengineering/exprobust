@@ -8,12 +8,12 @@ N = 100
 
 
 def monte_carlo_results(m, progress=None, out=None, sol=None, quiet=False, seed=246):
-    np.random.seed(seed=seed)
-    monte_up = [{k.name: stats.truncnorm.rvs(-3, 3, loc=v,
-                                             scale=(v*k.key.orig_pr/300.))
-                 for k, v in list(m.substitutions.items()) if k.pr}
-                for _ in range(N)]
     NamedVariables.reset_modelnumbers()
+    np.random.seed(seed=seed)
+    monte_up = [{k.name: stats.truncnorm.rvs(-3, 3, loc=1,
+                                             scale=(k.key.orig_pr/300.))
+                 for k in m.substitutions if k.pr}
+                for _ in range(N)]
     try:
         if sol is None:
             sol = m.localsolve(verbosity=0)
