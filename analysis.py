@@ -4,7 +4,7 @@ import pandas as pd
 import numpy as np
 import scipy.stats as stats
 import itertools
-import plotly.graph_objects as go
+# import plotly.graph_objects as go
 from monte_carlo import monte_carlo_results
 from simpleac import SimPleAC
 
@@ -111,7 +111,7 @@ def corrected_points(folder_name, point_end="_point.txt", model_gen=SimPleAC, se
                     pf_line = all_lines[1]
                     _, fail = [float(x) for x in pf_line.split(", ")]
                     if len(all_lines) >= 3:
-                        perf = all_lines[2] if (all_lines[2] == 'SKIP' or all_lines[2] == 'SKIP\n') else float(all_lines[2])
+                        perf = "SKIP" if "SKIP" in all_lines[2] else float(all_lines[2])
             else:
                 _, fail = save_point(point_path, point_end=point_end, model_gen=model_gen, seed=seed)
             if perf is None:
@@ -193,8 +193,8 @@ def plot_points(points, title):
     colors = [len(ids) for ids in points.values()]
     fig = go.Figure(
         data=[go.Scatter(
-            x=x, 
-            y=y, 
+            x=x,
+            y=y,
             marker=dict(
                 size=6,
                 color=colors,
@@ -283,8 +283,8 @@ def heatmap_points(points, title):
     y = list(np.linspace(0, 100, 51))
     fig = go.Figure(
         data=[go.Heatmap(
-            x=x, 
-            y=y, 
+            x=x,
+            y=y,
             z=hmap,
             type = 'heatmap',
             zmin=-1,
@@ -350,7 +350,7 @@ def fragility(folder_name, title, model_gen=SimPleAC, seed=358):
     fragpps = {}
     for pp in pps:
         for subject in pps[pp]:
-            subj_point = pointnum[(*pp, subject)]
+            subj_point = pointnum[(pp, subject)]
             point_path = folder_name + subject + "/" + subj_point
             with open(point_path + point_end, "r") as f:
                 pf_line = f.readlines()[1]
@@ -360,7 +360,7 @@ def fragility(folder_name, title, model_gen=SimPleAC, seed=358):
                     fragpps[(perf, fail)].append(subject)
             else:
                 fragpps[(perf, fail)] = [subject]
-    
+
     pps = pareto(pointids)
     plot_points(fragpointids, "All Fragility Points-" + title + " (seed %i)" %seed)
     plot_points(fragpps, "Pareto Fragility Points-" + title + " (seed %i)" %seed)
@@ -422,7 +422,7 @@ def summary_stats():
         timesyellow[condition] = [timeyellow[idnum] - min(times[idnum]) for idnum in times if timeyellow[idnum] is not None]
         timesblue[condition] = [timeblue[idnum] - min(times[idnum]) for idnum in times if timeblue[idnum] is not None]
         endtimes[condition] = [max(times[idnum]) - min(times[idnum]) for idnum in times]
-        
+
         #print(condition + " Time to Yellow")
         #print(timesyellow[condition])
         #print("Average: %f" %np.mean(timesyellow[condition]))
@@ -440,7 +440,7 @@ def summary_stats():
     for condition1, condition2 in itertools.combinations(conditions, 2):
         _, pval = stats.ttest_ind(timesyellow[condition1], timesyellow[condition2], equal_var=False, nan_policy='raise')
         print("%s, %s p-value: %f" %(condition1, condition2, pval))
-    
+
     '''
     fig = go.Figure()
     for condition in all_numpoints:
@@ -470,9 +470,6 @@ def summary_stats():
 
 
 if __name__ == "__main__":
-    '''
-    for folder_name, condition in zip(folder_names, conditions):
-        all_analysis(folder_name, condition)
-    '''
+    # for folder_name, condition in zip(folder_names, conditions):
+    #     all_analysis(folder_name, condition)
     summary_stats()
-
