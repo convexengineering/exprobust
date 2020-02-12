@@ -5,6 +5,7 @@ data/
 *.zip
 .DS_Store
 analysis/
+graphs/
 
 # Byte-compiled / optimized / DLL files
 __pycache__/

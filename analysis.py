@@ -4,7 +4,7 @@ import pandas as pd
 import numpy as np
 import scipy.stats as stats
 import itertools
-# import plotly.graph_objects as go
+import plotly.graph_objects as go
 from monte_carlo import monte_carlo_results
 from simpleac import SimPleAC
 
@@ -102,6 +102,7 @@ def corrected_points(folder_name, point_end="_point.txt", model_gen=SimPleAC, se
         subj_path = folder_name + subject
         subj_points = sorted([x for x in os.listdir(subj_path)
                          if not x.endswith(".txt")], key = int)
+        min_subj_point = int(subj_points[0])
         for subj_point in subj_points:
             perf = None
             point_path = subj_path + "/" + subj_point
@@ -131,10 +132,10 @@ def corrected_points(folder_name, point_end="_point.txt", model_gen=SimPleAC, se
                         pointids[(perf, fail)].append(subject)
                 else:
                     pointids[(perf, fail)] = [subject]
-                pointnum[(perf, fail, subject)] = subj_point
+                pointnum[(perf, fail, subject)] = int(subj_point)-min_subj_point
                 idpoints[subject].append((perf,fail))
             else:
-                skipped[subject].append(subj_point)
+                skipped[subject].append(int(subj_point)-min_subj_point)
 
     return pointids, idpoints, pointnum, skipped
 
@@ -315,7 +316,7 @@ def heatmap_points(points, title):
             x=x,
             y=y,
             z=hmap,
-            type = 'heatmap',
+            type='heatmap',
             zmin=-1,
             zmax=np.log(80),
             colorbar=dict(
@@ -425,17 +426,23 @@ def summary_stats():
     timesgreen = {condition: [] for condition in conditions}
     timesyellow = {condition: [] for condition in conditions}
     timesblue = {condition: [] for condition in conditions}
+    numpareto = {condition: [] for condition in conditions}
+    norm_numpareto = {condition: [] for condition in conditions}
+    delta_t = {condition: {} for condition in conditions}
     for folder_name, condition in zip(folder_names, conditions):
-        _, idpoints, pointnum, skipped = corrected_points(folder_name)
-        # _, idpoints, pointnum = get_points(folder_name)
+        pointids, idpoints, pointnum, skipped = corrected_points(folder_name)
+        # pointids, idpoints, pointnum = get_points(folder_name)
         numpoints[condition] = [len(idpoints[idnum]) for idnum in idpoints]
         _, numregions = count_regions(idpoints)
+        pps = pareto(pointids)
         numgreen[condition], numyellow[condition], numblue[condition] = list(zip(*numregions.values()))
         numout[condition] = np.subtract(np.subtract(np.subtract(numpoints[condition], numgreen[condition]), numyellow[condition]), numblue[condition])
         norm_numgreen[condition] = np.divide(numgreen[condition], numpoints[condition])
         norm_numyellow[condition] = np.divide(numyellow[condition], numpoints[condition])
         norm_numblue[condition] = np.divide(numblue[condition], numpoints[condition])
         norm_numout[condition] = np.divide(numout[condition], numpoints[condition])
+        numpareto[condition] = [len([pp for pp in pps if idnum in pps[pp]]) for idnum in idpoints]
+        norm_numpareto[condition] = np.divide(numpareto[condition], sum(numpareto[condition]))
         times = {idnum: [] for idnum in idpoints}
         timegreen = {idnum: None for idnum in idpoints}
         timeyellow = {idnum: None for idnum in idpoints}
@@ -454,6 +461,7 @@ def summary_stats():
         timesyellow[condition] = [timeyellow[idnum] - min(times[idnum]) for idnum in times if timeyellow[idnum] is not None]
         timesblue[condition] = [timeblue[idnum] - min(times[idnum]) for idnum in times if timeblue[idnum] is not None]
         endtimes[condition] = [max(times[idnum]) - min(times[idnum]) for idnum in times]
+        delta_t[condition] = {idnum: np.subtract(times[idnum][1:],times[idnum][:-1]) for idnum in times}
         
     summary_stat_t_test(numpoints, "Number of Points")
     summary_stat_t_test(numgreen, "Number of Points in Green")
@@ -468,6 +476,8 @@ def summary_stats():
     summary_stat_t_test(timesgreen, "Time to first Green Point")
     summary_stat_t_test(timesyellow, "Time to first Yellow Point")
     summary_stat_t_test(timesblue, "Time to first Blue Point")
+    summary_stat_t_test(numpareto, "Number of Points on Pareto")
+    summary_stat_t_test(norm_numpareto, "Percent of Points on Pareto")
 
     plot_summary_stat(numpoints, "Number of Points")
     plot_summary_stat(numgreen, "Number of Points in Green")
@@ -482,6 +492,9 @@ def summary_stats():
     plot_summary_stat(timesgreen, "Time to first Green Point")
     plot_summary_stat(timesyellow, "Time to first Yellow Point")
     plot_summary_stat(timesblue, "Time to first Blue Point")
+    plot_summary_stat(numpareto, "Number of Points on Pareto")
+    plot_summary_stat(norm_numpareto, "Percent of Points on Pareto")
+    plot_delta_t(delta_t)
 
 
 def summary_stat_t_test(stat_conds, stat_name="stat"):
@@ -531,11 +544,79 @@ def plot_summary_stat(stat_conds, stat_name="stat"):
     fig.write_image(analysis_plot_dir+stat_name+".png")
 
 
+def plot_delta_t(delta_t):
+    all_delta_t = {}
+    for condition in delta_t:
+        fig = go.Figure()
+        for idnum in delta_t[condition]:
+            fig.add_trace(go.Scatter(
+                y=delta_t[condition][idnum],
+                name=idnum,
+                marker=dict(
+                   size=6,
+                   opacity=0.6),
+                mode="markers"))
+
+        max_numpoints = max([len(delta_t[condition][idnum]) for idnum in delta_t[condition]])
+        avg_delta_t = [np.mean([d_t[i] for d_t in delta_t[condition].values() if len(d_t)>i]) for i in range(max_numpoints)]
+        fig.add_trace(go.Scatter(
+            y=avg_delta_t,
+            name=idnum))
+        fig.update_layout(
+            autosize=False,
+            width=800,
+            height=600,
+            showlegend=False,
+            plot_bgcolor='rgba(0,0,0,0)',
+            xaxis=go.layout.XAxis(
+                title_text="Number Point",
+                range=[0,100]
+            ),
+            yaxis=go.layout.YAxis(
+                title_text="Delta Time to Point",
+                ticks="outside",
+                gridcolor='rgba(0,0,0,.1)',
+                range=[0,350]
+            ),
+            title=condition
+        )
+        fig.show()
+        if not os.path.exists(analysis_plot_dir):
+            os.mkdir(analysis_plot_dir)
+        fig.write_image(analysis_plot_dir+condition+"_delta_t.png")
+        all_delta_t[condition] = avg_delta_t
+
+    fig = go.Figure()
+    for condition in conditions:
+        fig.add_trace(go.Scatter(
+            y=all_delta_t[condition],
+            name=condition))
+    fig.update_layout(
+        autosize=False,
+        width=800,
+        height=600,
+        showlegend=True,
+        plot_bgcolor='rgba(0,0,0,0)',
+        xaxis=go.layout.XAxis(
+            title_text="Number Point",
+            range=[0,100]
+        ),
+        yaxis=go.layout.YAxis(
+            title_text="Delta Time to Point",
+            ticks="outside",
+            gridcolor='rgba(0,0,0,.1)',
+            range=[0,100]
+        ),
+        title="All Conditions"
+    )
+    fig.show()
+
+
 if __name__ == "__main__":
     
     # for folder_name, condition in zip(folder_names, conditions):
         # all_analysis(folder_name, condition)
-    
+
     summary_stats()
     # pointids_condition = {}
     # for folder_name, condition in zip(folder_names, conditions):
