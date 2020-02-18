@@ -209,10 +209,127 @@ def compare_pareto(pointids_condition):
                 elif (pareto_point[0] >= perf and pareto_point[1] >= fail):
                     im_not_pareto.append(pareto_point)
             if im_pareto:
-                pareto_points[point] = (pointids_condition[condition][point], condition)
+                if point in pareto_points:
+                    pareto_points[point].append((pointids_condition[condition][point], condition))
+                pareto_points[point] = [(pointids_condition[condition][point], condition)]
                 for not_pareto_point in im_not_pareto:
                     pareto_points.pop(not_pareto_point)
     return pareto_points
+
+
+def plot_compare_pareto():
+    pointids_condition = {}
+    for folder_name, condition in zip(folder_names, conditions):
+        pointids_condition[condition], _, _, _ = corrected_points(folder_name)
+    pareto_points = compare_pareto(pointids_condition)
+    points = pareto_points
+    title = "Compared Pareto"
+    colorfn = lambda x: conditions.index(x[1])
+    cmax = 3
+    x = {}
+    y = {}
+    for i in range(4):
+        x[i], y[i] = list(zip(*[point for point in pareto_points if conditions[i] in list(zip(*pareto_points[point]))[1]]))
+        print(conditions[i])
+        print(len(x[i]))
+    fig = go.Figure(
+        data=[go.Scatter(
+                x=x[0], 
+                y=y[0], 
+                marker=dict(
+                    size=6,
+                    opacity=1),
+                mode="markers",
+                name=conditions[0]), 
+            go.Scatter(
+                x=x[1], 
+                y=y[1], 
+                marker=dict(
+                    size=6,
+                    opacity=1),
+                mode="markers",
+                name=conditions[1]),
+            go.Scatter(
+                x=x[2], 
+                y=y[2], 
+                marker=dict(
+                    size=6,
+                    opacity=1),
+                mode="markers",
+                name=conditions[2]),
+            go.Scatter(
+                x=x[3], 
+                y=y[3], 
+                marker=dict(
+                    size=6,
+                    opacity=1),
+                mode="markers",
+                name=conditions[3]),
+            ],
+        layout_title_text=title)
+    fig.update_layout(
+        autosize=False,
+        width=800,
+        height=600,
+        yaxis=go.layout.YAxis(
+            title_text="Failure Rate",
+            range=[0,100],
+            tickmode='array',
+            tickvals=[0, 10, 20, 30, 40, 50, 60, 70, 80, 90, 100],
+            ticktext=["0%", "10%", "20%", "30%", "40%", "50%", "60%", "70%", "80%", "90%", "100%"]
+        ),
+        xaxis=go.layout.XAxis(
+            title_text="Fuel Consumed (lbs)",
+            range=[900,2000]
+        )
+    )
+    fig.add_shape(
+        go.layout.Shape(
+            type="rect",
+            layer="below",
+            x0=1200,
+            y0=0,
+            x1=2000,
+            y1=10,
+            fillcolor="rgba(240,255,220,0.4)",
+            line=dict(
+                color="white",
+                width=1,
+            ),
+    ))
+    fig.add_shape(
+        go.layout.Shape(
+            type="rect",
+            layer="below",
+            x0=900,
+            y0=30,
+            x1=1100,
+            y1=100,
+            fillcolor="rgba(220,255,240,0.4)",
+            line=dict(
+                color="white",
+                width=1,
+            ),
+    ))
+    fig.add_shape(
+        go.layout.Shape(
+            type="rect",
+            layer="below",
+            x0=900,
+            y0=0,
+            x1=1200,
+            y1=30,
+            fillcolor="rgba(200,255,200,0.4)",
+            line=dict(
+                color="white",
+                width=1,
+            ),
+    ))
+    fig.update_shapes(dict(xref='x', yref='y'))
+    fig.show()
+    if not os.path.exists(analysis_plot_dir):
+        os.mkdir(analysis_plot_dir)
+    fig.write_image(analysis_plot_dir+title+".png")
 
 
 def plot_points(points, title, colorfn=len, cmax=8):
@@ -372,7 +489,7 @@ def compensation(pareto_points, regions, idfile, outfile):
         odf.to_excel(writer)
 
 
-#TODO still uses uncorrected perf; possibly don't need anymore
+#TODO still uses uncorrected perf; but also don't need anymore
 def fragility(folder_name, title, model_gen=SimPleAC, seed=358):
     point_end = "_frag%i.txt" %seed
     pointids, _, pointnum = get_points(folder_name, model_gen=model_gen)
@@ -395,106 +512,6 @@ def fragility(folder_name, title, model_gen=SimPleAC, seed=358):
     plot_points(fragpointids, "All Fragility Points-" + title + " (seed %i)" %seed)
     plot_points(fragpps, "Pareto Fragility Points-" + title + " (seed %i)" %seed)
     heatmap_points(fragpointids, "Fragility Heatmap-" + title + " (seed %i)" %seed)
-
-
-def all_analysis(folder_name, condition):
-    #pointids, idpoints, _ = get_points(folder_name)
-    pointids, idpoints, _, _ = corrected_points(folder_name)
-    pps = pareto(pointids)
-    regions, _ = count_regions(idpoints)
-    plot_points(pointids, "All Points-" + condition)
-    plot_points(pps, "Pareto Points-" + condition)
-    heatmap_points(pointids, "Heatmap-" + condition)
-    # compensation(pps, regions, "./Participant ID and Email (Responses).xlsx",
-    #             analysis_plot_dir + condition + "_Money.xlsx")
-
-    # fragility(folder_name, condition)
-    # fragility(folder_name, condition, seed=839)
-
-
-def summary_stats():
-    numpoints = {condition: [] for condition in conditions}
-    numgreen = {condition: [] for condition in conditions}
-    numyellow = {condition: [] for condition in conditions}
-    numblue = {condition: [] for condition in conditions}
-    numout = {condition: [] for condition in conditions}
-    norm_numgreen = {condition: [] for condition in conditions}
-    norm_numyellow = {condition: [] for condition in conditions}
-    norm_numblue = {condition: [] for condition in conditions}
-    norm_numout = {condition: [] for condition in conditions}
-    endtimes = {condition: [] for condition in conditions}
-    timesgreen = {condition: [] for condition in conditions}
-    timesyellow = {condition: [] for condition in conditions}
-    timesblue = {condition: [] for condition in conditions}
-    numpareto = {condition: [] for condition in conditions}
-    norm_numpareto = {condition: [] for condition in conditions}
-    delta_t = {condition: {} for condition in conditions}
-    for folder_name, condition in zip(folder_names, conditions):
-        pointids, idpoints, pointnum, skipped = corrected_points(folder_name)
-        # pointids, idpoints, pointnum = get_points(folder_name)
-        numpoints[condition] = [len(idpoints[idnum]) for idnum in idpoints]
-        _, numregions = count_regions(idpoints)
-        pps = pareto(pointids)
-        numgreen[condition], numyellow[condition], numblue[condition] = list(zip(*numregions.values()))
-        numout[condition] = np.subtract(np.subtract(np.subtract(numpoints[condition], numgreen[condition]), numyellow[condition]), numblue[condition])
-        norm_numgreen[condition] = np.divide(numgreen[condition], numpoints[condition])
-        norm_numyellow[condition] = np.divide(numyellow[condition], numpoints[condition])
-        norm_numblue[condition] = np.divide(numblue[condition], numpoints[condition])
-        norm_numout[condition] = np.divide(numout[condition], numpoints[condition])
-        numpareto[condition] = [len([pp for pp in pps if idnum in pps[pp]]) for idnum in idpoints]
-        norm_numpareto[condition] = np.divide(numpareto[condition], sum(numpareto[condition]))
-        times = {idnum: [] for idnum in idpoints}
-        timegreen = {idnum: None for idnum in idpoints}
-        timeyellow = {idnum: None for idnum in idpoints}
-        timeblue = {idnum: None for idnum in idpoints}
-        points = list(pointnum.keys())
-        points.sort(key = lambda x: int(pointnum[x]))
-        for point in points:
-            times[point[2]].append(int(pointnum[point]))
-            if (timegreen[point[2]] is None and (point[0] <= 1200 and point[1] <= 30)):
-                timegreen[point[2]] = int(pointnum[point])
-            elif (timeyellow[point[2]] is None and ((point[0] <= 2000 and point[0] > 1200) and point[1] <= 10)):
-                timeyellow[point[2]] = int(pointnum[point])
-            elif (timeblue[point[2]] is None and (point[0] <= 1100 and point[1] > 30)):
-                timeblue[point[2]] = int(pointnum[point])
-        timesgreen[condition] = [timegreen[idnum] - min(times[idnum]) for idnum in times if timegreen[idnum] is not None]
-        timesyellow[condition] = [timeyellow[idnum] - min(times[idnum]) for idnum in times if timeyellow[idnum] is not None]
-        timesblue[condition] = [timeblue[idnum] - min(times[idnum]) for idnum in times if timeblue[idnum] is not None]
-        endtimes[condition] = [max(times[idnum]) - min(times[idnum]) for idnum in times]
-        delta_t[condition] = {idnum: np.subtract(times[idnum][1:],times[idnum][:-1]) for idnum in times}
-        
-    summary_stat_t_test(numpoints, "Number of Points")
-    summary_stat_t_test(numgreen, "Number of Points in Green")
-    summary_stat_t_test(numyellow, "Number of Points in Yellow")
-    summary_stat_t_test(numblue, "Number of Points in Blue")
-    summary_stat_t_test(endtimes, "End Times")
-    summary_stat_t_test(norm_numgreen, "Normalized Number of Points in Green")
-    summary_stat_t_test(norm_numyellow, "Normalized Number of Points in Yellow")
-    summary_stat_t_test(norm_numblue, "Normalized Number of Points in Blue")
-    summary_stat_t_test(numout, "Number of Points Outside")
-    summary_stat_t_test(norm_numout, "Normalized Number of Points Outside")
-    summary_stat_t_test(timesgreen, "Time to first Green Point")
-    summary_stat_t_test(timesyellow, "Time to first Yellow Point")
-    summary_stat_t_test(timesblue, "Time to first Blue Point")
-    summary_stat_t_test(numpareto, "Number of Points on Pareto")
-    summary_stat_t_test(norm_numpareto, "Percent of Points on Pareto")
-
-    plot_summary_stat(numpoints, "Number of Points")
-    plot_summary_stat(numgreen, "Number of Points in Green")
-    plot_summary_stat(numyellow, "Number of Points in Yellow")
-    plot_summary_stat(numblue, "Number of Points in Blue")
-    plot_summary_stat(endtimes, "End Times")
-    plot_summary_stat(norm_numgreen, "Normalized Number of Points in Green")
-    plot_summary_stat(norm_numyellow, "Normalized Number of Points in Yellow")
-    plot_summary_stat(norm_numblue, "Normalized Number of Points in Blue")
-    plot_summary_stat(numout, "Number of Points Outside")
-    plot_summary_stat(norm_numout, "Normalized Number of Points Outside")
-    plot_summary_stat(timesgreen, "Time to first Green Point")
-    plot_summary_stat(timesyellow, "Time to first Yellow Point")
-    plot_summary_stat(timesblue, "Time to first Blue Point")
-    plot_summary_stat(numpareto, "Number of Points on Pareto")
-    plot_summary_stat(norm_numpareto, "Percent of Points on Pareto")
-    plot_delta_t(delta_t)
 
 
 def summary_stat_t_test(stat_conds, stat_name="stat"):
@@ -612,121 +629,136 @@ def plot_delta_t(delta_t):
     fig.show()
 
 
+def all_analysis(folder_name, condition):
+    #pointids, idpoints, _ = get_points(folder_name)
+    pointids, idpoints, _, _ = corrected_points(folder_name)
+    pps = pareto(pointids)
+    regions, _ = count_regions(idpoints)
+    plot_points(pointids, "All Points-" + condition)
+    plot_points(pps, "Pareto Points-" + condition)
+    heatmap_points(pointids, "Heatmap-" + condition)
+    # compensation(pps, regions, "./Participant ID and Email (Responses).xlsx",
+    #             analysis_plot_dir + condition + "_Money.xlsx")
+
+    # fragility(folder_name, condition)
+    # fragility(folder_name, condition, seed=839)
+
+
+def summary_stats():
+    numpoints = {condition: [] for condition in conditions}
+    numgreen = {condition: [] for condition in conditions}
+    numyellow = {condition: [] for condition in conditions}
+    numblue = {condition: [] for condition in conditions}
+    numout = {condition: [] for condition in conditions}
+    norm_numgreen = {condition: [] for condition in conditions}
+    norm_numyellow = {condition: [] for condition in conditions}
+    norm_numblue = {condition: [] for condition in conditions}
+    norm_numout = {condition: [] for condition in conditions}
+    endtimes = {condition: [] for condition in conditions}
+    timesgreen = {condition: [] for condition in conditions}
+    timesyellow = {condition: [] for condition in conditions}
+    timesblue = {condition: [] for condition in conditions}
+    numpareto = {condition: [] for condition in conditions}
+    norm_numpareto = {condition: [] for condition in conditions}
+    avg_delta_t = {condition: [] for condition in conditions}
+    delta_t = {condition: {} for condition in conditions}
+    grid_cover = {condition: [] for condition in conditions}
+    pointids_condition = {}
+    for folder_name, condition in zip(folder_names, conditions):
+        pointids_condition[condition], idpoints, pointnum, skipped = corrected_points(folder_name)
+        # pointids_condition[condition], idpoints, pointnum = get_points(folder_name)
+        numpoints[condition] = [len(idpoints[idnum]) for idnum in idpoints]
+        _, numregions = count_regions(idpoints)
+        pps = pareto(pointids_condition[condition])
+        numgreen[condition], numyellow[condition], numblue[condition] = list(zip(*numregions.values()))
+        numout[condition] = np.subtract(np.subtract(np.subtract(numpoints[condition], numgreen[condition]), numyellow[condition]), numblue[condition])
+        norm_numgreen[condition] = np.divide(numgreen[condition], numpoints[condition])
+        norm_numyellow[condition] = np.divide(numyellow[condition], numpoints[condition])
+        norm_numblue[condition] = np.divide(numblue[condition], numpoints[condition])
+        norm_numout[condition] = np.divide(numout[condition], numpoints[condition])
+        numpareto[condition] = [len([pp for pp in pps if idnum in pps[pp]]) for idnum in idpoints]
+        norm_numpareto[condition] = np.divide(numpareto[condition], sum(numpareto[condition]))
+        times = {idnum: [] for idnum in idpoints}
+        timegreen = {idnum: None for idnum in idpoints}
+        timeyellow = {idnum: None for idnum in idpoints}
+        timeblue = {idnum: None for idnum in idpoints}
+        points = list(pointnum.keys())
+        points.sort(key = lambda x: int(pointnum[x]))
+        for point in points:
+            times[point[2]].append(int(pointnum[point]))
+            if (timegreen[point[2]] is None and (point[0] <= 1200 and point[1] <= 30)):
+                timegreen[point[2]] = int(pointnum[point])
+            elif (timeyellow[point[2]] is None and ((point[0] <= 2000 and point[0] > 1200) and point[1] <= 10)):
+                timeyellow[point[2]] = int(pointnum[point])
+            elif (timeblue[point[2]] is None and (point[0] <= 1100 and point[1] > 30)):
+                timeblue[point[2]] = int(pointnum[point])
+        timesgreen[condition] = [timegreen[idnum] - min(times[idnum]) for idnum in times if timegreen[idnum] is not None]
+        timesyellow[condition] = [timeyellow[idnum] - min(times[idnum]) for idnum in times if timeyellow[idnum] is not None]
+        timesblue[condition] = [timeblue[idnum] - min(times[idnum]) for idnum in times if timeblue[idnum] is not None]
+        endtimes[condition] = [max(times[idnum]) - min(times[idnum]) for idnum in times]
+        delta_t[condition] = {idnum: np.subtract(times[idnum][1:],times[idnum][:-1]) for idnum in times}
+        avg_delta_t[condition] = [item for sublist in delta_t[condition].values() for item in sublist]
+        for idnum in idpoints:
+            hmap = np.zeros((11, 23))
+            for perf, fail in idpoints[idnum]:
+                i_col = min(max(int((perf-900)/50)+1, 0), 22)
+                i_row = int(fail/10)
+                hmap[i_row, i_col] += 1
+            grid_cover[condition].append(np.count_nonzero(hmap[:, 1:22]))
+
+    pareto_points = compare_pareto(pointids_condition)
+    id_pp = {condition: {idnum: 0 for idnum in sorted(os.listdir(folder_name))} for condition,folder_name in zip(conditions, folder_names)}
+    for pp in pareto_points:
+        for idnums in pareto_points[pp]:
+            for idnum in idnums[0]:
+                id_pp[idnums[1]][idnum] += 1
+    combined_pareto = {condition: list(id_pp[condition].values()) for condition in conditions}
+
+    summary_stat_t_test(numpoints, "Number of Points")
+    summary_stat_t_test(numgreen, "Number of Points in Green")
+    summary_stat_t_test(numyellow, "Number of Points in Yellow")
+    summary_stat_t_test(numblue, "Number of Points in Blue")
+    summary_stat_t_test(endtimes, "End Times")
+    summary_stat_t_test(norm_numgreen, "Normalized Number of Points in Green")
+    summary_stat_t_test(norm_numyellow, "Normalized Number of Points in Yellow")
+    summary_stat_t_test(norm_numblue, "Normalized Number of Points in Blue")
+    summary_stat_t_test(numout, "Number of Points Outside")
+    summary_stat_t_test(norm_numout, "Normalized Number of Points Outside")
+    summary_stat_t_test(timesgreen, "Time to first Green Point")
+    summary_stat_t_test(timesyellow, "Time to first Yellow Point")
+    summary_stat_t_test(timesblue, "Time to first Blue Point")
+    summary_stat_t_test(numpareto, "Number of Points on Pareto")
+    summary_stat_t_test(norm_numpareto, "Percent of Points on Pareto")
+    summary_stat_t_test(combined_pareto, "Number of Points on Combined Pareto")
+    summary_stat_t_test(avg_delta_t, "Delta T")
+    summary_stat_t_test(grid_cover, "Grid Points Covered")
+
+    plot_summary_stat(numpoints, "Number of Points")
+    plot_summary_stat(numgreen, "Number of Points in Green")
+    plot_summary_stat(numyellow, "Number of Points in Yellow")
+    plot_summary_stat(numblue, "Number of Points in Blue")
+    plot_summary_stat(endtimes, "End Times")
+    plot_summary_stat(norm_numgreen, "Normalized Number of Points in Green")
+    plot_summary_stat(norm_numyellow, "Normalized Number of Points in Yellow")
+    plot_summary_stat(norm_numblue, "Normalized Number of Points in Blue")
+    plot_summary_stat(numout, "Number of Points Outside")
+    plot_summary_stat(norm_numout, "Normalized Number of Points Outside")
+    plot_summary_stat(timesgreen, "Time to first Green Point")
+    plot_summary_stat(timesyellow, "Time to first Yellow Point")
+    plot_summary_stat(timesblue, "Time to first Blue Point")
+    plot_summary_stat(numpareto, "Number of Points on Pareto")
+    plot_summary_stat(norm_numpareto, "Percent of Points on Pareto")
+    plot_summary_stat(combined_pareto, "Number of Points on Combined Pareto")
+    plot_summary_stat(avg_delta_t, "Delta T")
+    plot_summary_stat(grid_cover, "Grid Points Covered")
+
+    # plot_delta_t(delta_t)
+
+
 if __name__ == "__main__":
     
-    # for folder_name, condition in zip(folder_names, conditions):
-        # all_analysis(folder_name, condition)
+    for folder_name, condition in zip(folder_names, conditions):
+        all_analysis(folder_name, condition)
 
     summary_stats()
-    # pointids_condition = {}
-    # for folder_name, condition in zip(folder_names, conditions):
-    #     pointids_condition[condition], _, _, _ = corrected_points(folder_name)
-    # pareto_points = compare_pareto(pointids_condition)
-    # points = pareto_points
-    # title = "Compared Pareto"
-    # colorfn = lambda x: conditions.index(x[1])
-    # cmax = 3
-    # x = {}
-    # y = {}
-    # for i in range(4):
-    #     x[i], y[i] = list(zip(*[point for point in pareto_points if pareto_points[point][1] == conditions[i]]))
-    #     print(conditions[i])
-    #     print(len(x[i]))
-    # fig = go.Figure(
-    #     data=[go.Scatter(
-    #             x=x[0], 
-    #             y=y[0], 
-    #             marker=dict(
-    #                 size=6,
-    #                 opacity=1),
-    #             mode="markers",
-    #             name=conditions[0]), 
-    #         go.Scatter(
-    #             x=x[1], 
-    #             y=y[1], 
-    #             marker=dict(
-    #                 size=6,
-    #                 opacity=1),
-    #             mode="markers",
-    #             name=conditions[1]),
-    #         go.Scatter(
-    #             x=x[2], 
-    #             y=y[2], 
-    #             marker=dict(
-    #                 size=6,
-    #                 opacity=1),
-    #             mode="markers",
-    #             name=conditions[2]),
-    #         go.Scatter(
-    #             x=x[3], 
-    #             y=y[3], 
-    #             marker=dict(
-    #                 size=6,
-    #                 opacity=1),
-    #             mode="markers",
-    #             name=conditions[3]),
-    #         ],
-    #     layout_title_text=title)
-    # fig.update_layout(
-    #     autosize=False,
-    #     width=800,
-    #     height=600,
-    #     yaxis=go.layout.YAxis(
-    #         title_text="Failure Rate",
-    #         range=[0,100],
-    #         tickmode='array',
-    #         tickvals=[0, 10, 20, 30, 40, 50, 60, 70, 80, 90, 100],
-    #         ticktext=["0%", "10%", "20%", "30%", "40%", "50%", "60%", "70%", "80%", "90%", "100%"]
-    #     ),
-    #     xaxis=go.layout.XAxis(
-    #         title_text="Fuel Consumed (lbs)",
-    #         range=[900,2000]
-    #     )
-    # )
-    # fig.add_shape(
-    #     go.layout.Shape(
-    #         type="rect",
-    #         layer="below",
-    #         x0=1200,
-    #         y0=0,
-    #         x1=2000,
-    #         y1=10,
-    #         fillcolor="rgba(240,255,220,0.4)",
-    #         line=dict(
-    #             color="white",
-    #             width=1,
-    #         ),
-    # ))
-    # fig.add_shape(
-    #     go.layout.Shape(
-    #         type="rect",
-    #         layer="below",
-    #         x0=900,
-    #         y0=30,
-    #         x1=1100,
-    #         y1=100,
-    #         fillcolor="rgba(220,255,240,0.4)",
-    #         line=dict(
-    #             color="white",
-    #             width=1,
-    #         ),
-    # ))
-    # fig.add_shape(
-    #     go.layout.Shape(
-    #         type="rect",
-    #         layer="below",
-    #         x0=900,
-    #         y0=0,
-    #         x1=1200,
-    #         y1=30,
-    #         fillcolor="rgba(200,255,200,0.4)",
-    #         line=dict(
-    #             color="white",
-    #             width=1,
-    #         ),
-    # ))
-    # fig.update_shapes(dict(xref='x', yref='y'))
-    # fig.show()
-    # if not os.path.exists(analysis_plot_dir):
-    #     os.mkdir(analysis_plot_dir)
-    # fig.write_image(analysis_plot_dir+title+".png")
+
